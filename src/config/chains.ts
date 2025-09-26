@@ -78,11 +78,91 @@ export const arbitrumSepolia: Chain = {
   testnet: true,
 }
 
+// Ethereum Sepolia
+export const ethereumSepolia: Chain = {
+  id: 11155111,
+  name: 'Ethereum Sepolia',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'Ethereum',
+    symbol: 'ETH',
+  },
+  rpcUrls: {
+    default: {
+      http: ['https://1rpc.io/sepolia'],
+    },
+    public: {
+      http: ['https://1rpc.io/sepolia'],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: 'Etherscan',
+      url: 'https://sepolia.etherscan.io',
+    },
+  },
+  testnet: true,
+}
+
+// BSC Testnet
+export const bscTestnet: Chain = {
+  id: 97,
+  name: 'BSC Testnet',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'BNB',
+    symbol: 'BNB',
+  },
+  rpcUrls: {
+    default: {
+      http: ['https://data-seed-prebsc-1-s1.binance.org:8545'],
+    },
+    public: {
+      http: ['https://data-seed-prebsc-1-s1.binance.org:8545'],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: 'BscScan',
+      url: 'https://testnet.bscscan.com',
+    },
+  },
+  testnet: true,
+}
+
+// Polygon Mumbai
+export const polygonMumbai: Chain = {
+  id: 80001,
+  name: 'Polygon Mumbai',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'MATIC',
+    symbol: 'MATIC',
+  },
+  rpcUrls: {
+    default: {
+      http: ['https://rpc-mumbai.maticvigil.com'],
+    },
+    public: {
+      http: ['https://rpc-mumbai.maticvigil.com'],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: 'PolygonScan',
+      url: 'https://mumbai.polygonscan.com',
+    },
+  },
+  testnet: true,
+}
+
 // Supported chains configuration
 export const supportedChains = [
   arbitrumSepolia,
   zetaChainTestnet,
-  // Add more chains as needed
+  ethereumSepolia,
+  bscTestnet,
+  polygonMumbai,
 ] as const
 
 // Chain configurations for the application
@@ -120,6 +200,39 @@ export const chainConfigs = {
     isOmnichainHub: true,
     features: ['registration', 'transfer', 'marketplace', 'crosschain', 'omnichain'],
   },
+  [ethereumSepolia.id]: {
+    name: 'Ethereum Sepolia',
+    shortName: 'ETH',
+    color: '#627EEA',
+    registrationPrice: '0.002',
+    transferFee: '0.0002',
+    listingFee: '0.0002',
+    currency: 'ETH',
+    isOmnichainHub: false,
+    features: ['registration', 'transfer', 'marketplace', 'crosschain'],
+  },
+  [bscTestnet.id]: {
+    name: 'BSC Testnet',
+    shortName: 'BNB',
+    color: '#F3BA2F',
+    registrationPrice: '0.01',
+    transferFee: '0.001',
+    listingFee: '0.001',
+    currency: 'BNB',
+    isOmnichainHub: false,
+    features: ['registration', 'transfer', 'marketplace', 'crosschain'],
+  },
+  [polygonMumbai.id]: {
+    name: 'Polygon Mumbai',
+    shortName: 'MATIC',
+    color: '#8247E5',
+    registrationPrice: '1.0',
+    transferFee: '0.1',
+    listingFee: '0.1',
+    currency: 'MATIC',
+    isOmnichainHub: false,
+    features: ['registration', 'transfer', 'marketplace', 'crosschain'],
+  },
 } as const
 
 // Contract addresses by chain
@@ -134,6 +247,21 @@ export const contractAddresses = {
     marketplace: process.env.NEXT_PUBLIC_ZETACHAIN_MARKETPLACE_ADDRESS || '0x95bc083e6911DeBc46b36cDCE8996fAEB28bf9A6',
     omnichain: process.env.NEXT_PUBLIC_ZETACHAIN_NAME_SERVICE_ADDRESS || '0x6F40A56250fbB57F5a17C815BE66A36804590669',
   },
+  [ethereumSepolia.id]: {
+    nameService: process.env.NEXT_PUBLIC_ETHEREUM_NAME_SERVICE_ADDRESS || '',
+    marketplace: process.env.NEXT_PUBLIC_ETHEREUM_MARKETPLACE_ADDRESS || '',
+    omnichain: process.env.NEXT_PUBLIC_ETHEREUM_NAME_SERVICE_ADDRESS || '',
+  },
+  [bscTestnet.id]: {
+    nameService: process.env.NEXT_PUBLIC_BSC_NAME_SERVICE_ADDRESS || '',
+    marketplace: process.env.NEXT_PUBLIC_BSC_MARKETPLACE_ADDRESS || '',
+    omnichain: process.env.NEXT_PUBLIC_BSC_NAME_SERVICE_ADDRESS || '',
+  },
+  [polygonMumbai.id]: {
+    nameService: process.env.NEXT_PUBLIC_POLYGON_NAME_SERVICE_ADDRESS || '',
+    marketplace: process.env.NEXT_PUBLIC_POLYGON_MARKETPLACE_ADDRESS || '',
+    omnichain: process.env.NEXT_PUBLIC_POLYGON_NAME_SERVICE_ADDRESS || '',
+  },
 } as const
 
 // ZetaChain protocol addresses
@@ -145,17 +273,114 @@ export const zetaProtocolAddresses = {
 
 // Cross-chain route configurations
 export const crossChainRoutes = {
-  // Arbitrum Sepolia to ZetaChain
+  // Arbitrum Sepolia routes
   [`${arbitrumSepolia.id}-${zetaChainTestnet.id}`]: {
     estimatedTime: '2-5 minutes',
     fee: '0.0001 ETH',
-    steps: ['Lock on source', 'ZetaChain processing', 'Mint on target'],
+    steps: ['Lock on Arbitrum', 'ZetaChain processing', 'Mint on ZetaChain'],
   },
-  // ZetaChain to Arbitrum Sepolia
+  [`${arbitrumSepolia.id}-${ethereumSepolia.id}`]: {
+    estimatedTime: '3-7 minutes',
+    fee: '0.0002 ETH',
+    steps: ['Lock on Arbitrum', 'ZetaChain bridge', 'Unlock on Ethereum'],
+  },
+  [`${arbitrumSepolia.id}-${bscTestnet.id}`]: {
+    estimatedTime: '3-7 minutes',
+    fee: '0.0002 ETH',
+    steps: ['Lock on Arbitrum', 'ZetaChain bridge', 'Unlock on BSC'],
+  },
+  [`${arbitrumSepolia.id}-${polygonMumbai.id}`]: {
+    estimatedTime: '3-7 minutes',
+    fee: '0.0002 ETH',
+    steps: ['Lock on Arbitrum', 'ZetaChain bridge', 'Unlock on Polygon'],
+  },
+  
+  // ZetaChain routes (hub)
   [`${zetaChainTestnet.id}-${arbitrumSepolia.id}`]: {
     estimatedTime: '2-5 minutes',
     fee: '0.0001 ZETA',
-    steps: ['Burn on source', 'ZetaChain processing', 'Unlock on target'],
+    steps: ['Burn on ZetaChain', 'ZetaChain processing', 'Unlock on Arbitrum'],
+  },
+  [`${zetaChainTestnet.id}-${ethereumSepolia.id}`]: {
+    estimatedTime: '2-5 minutes',
+    fee: '0.0001 ZETA',
+    steps: ['Burn on ZetaChain', 'ZetaChain processing', 'Unlock on Ethereum'],
+  },
+  [`${zetaChainTestnet.id}-${bscTestnet.id}`]: {
+    estimatedTime: '2-5 minutes',
+    fee: '0.0001 ZETA',
+    steps: ['Burn on ZetaChain', 'ZetaChain processing', 'Unlock on BSC'],
+  },
+  [`${zetaChainTestnet.id}-${polygonMumbai.id}`]: {
+    estimatedTime: '2-5 minutes',
+    fee: '0.0001 ZETA',
+    steps: ['Burn on ZetaChain', 'ZetaChain processing', 'Unlock on Polygon'],
+  },
+  
+  // Ethereum Sepolia routes
+  [`${ethereumSepolia.id}-${zetaChainTestnet.id}`]: {
+    estimatedTime: '3-7 minutes',
+    fee: '0.0002 ETH',
+    steps: ['Lock on Ethereum', 'ZetaChain bridge', 'Mint on ZetaChain'],
+  },
+  [`${ethereumSepolia.id}-${arbitrumSepolia.id}`]: {
+    estimatedTime: '5-10 minutes',
+    fee: '0.0003 ETH',
+    steps: ['Lock on Ethereum', 'ZetaChain bridge', 'Unlock on Arbitrum'],
+  },
+  [`${ethereumSepolia.id}-${bscTestnet.id}`]: {
+    estimatedTime: '5-10 minutes',
+    fee: '0.0003 ETH',
+    steps: ['Lock on Ethereum', 'ZetaChain bridge', 'Unlock on BSC'],
+  },
+  [`${ethereumSepolia.id}-${polygonMumbai.id}`]: {
+    estimatedTime: '5-10 minutes',
+    fee: '0.0003 ETH',
+    steps: ['Lock on Ethereum', 'ZetaChain bridge', 'Unlock on Polygon'],
+  },
+  
+  // BSC Testnet routes
+  [`${bscTestnet.id}-${zetaChainTestnet.id}`]: {
+    estimatedTime: '3-7 minutes',
+    fee: '0.001 BNB',
+    steps: ['Lock on BSC', 'ZetaChain bridge', 'Mint on ZetaChain'],
+  },
+  [`${bscTestnet.id}-${arbitrumSepolia.id}`]: {
+    estimatedTime: '5-10 minutes',
+    fee: '0.002 BNB',
+    steps: ['Lock on BSC', 'ZetaChain bridge', 'Unlock on Arbitrum'],
+  },
+  [`${bscTestnet.id}-${ethereumSepolia.id}`]: {
+    estimatedTime: '5-10 minutes',
+    fee: '0.002 BNB',
+    steps: ['Lock on BSC', 'ZetaChain bridge', 'Unlock on Ethereum'],
+  },
+  [`${bscTestnet.id}-${polygonMumbai.id}`]: {
+    estimatedTime: '5-10 minutes',
+    fee: '0.002 BNB',
+    steps: ['Lock on BSC', 'ZetaChain bridge', 'Unlock on Polygon'],
+  },
+  
+  // Polygon Mumbai routes
+  [`${polygonMumbai.id}-${zetaChainTestnet.id}`]: {
+    estimatedTime: '3-7 minutes',
+    fee: '0.1 MATIC',
+    steps: ['Lock on Polygon', 'ZetaChain bridge', 'Mint on ZetaChain'],
+  },
+  [`${polygonMumbai.id}-${arbitrumSepolia.id}`]: {
+    estimatedTime: '5-10 minutes',
+    fee: '0.2 MATIC',
+    steps: ['Lock on Polygon', 'ZetaChain bridge', 'Unlock on Arbitrum'],
+  },
+  [`${polygonMumbai.id}-${ethereumSepolia.id}`]: {
+    estimatedTime: '5-10 minutes',
+    fee: '0.2 MATIC',
+    steps: ['Lock on Polygon', 'ZetaChain bridge', 'Unlock on Ethereum'],
+  },
+  [`${polygonMumbai.id}-${bscTestnet.id}`]: {
+    estimatedTime: '5-10 minutes',
+    fee: '0.2 MATIC',
+    steps: ['Lock on Polygon', 'ZetaChain bridge', 'Unlock on BSC'],
   },
 } as const
 

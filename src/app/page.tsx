@@ -2,7 +2,7 @@
 
 import styled from 'styled-components';
 import { useState, useEffect, useRef } from 'react';
-import { FaSearch, FaUser, FaWallet, FaSignOutAlt, FaGlobe, FaCheck, FaTimes, FaPaperPlane, FaInbox, FaTag, FaChevronUp, FaChevronDown } from 'react-icons/fa';
+import { FaSearch, FaUser, FaWallet, FaSignOutAlt, FaGlobe, FaCheck, FaTimes, FaPaperPlane, FaInbox, FaTag, FaChevronUp, FaChevronDown, FaExclamationTriangle } from 'react-icons/fa';
 import { createNoise3D } from "simplex-noise";
 import { useWallet } from '@/contexts/WalletContext';
 import { domainService, Domain as SupabaseDomain } from '@/lib/supabase';
@@ -16,6 +16,9 @@ import { useNotification } from '@/components/Notification';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount, useDisconnect as useWagmiDisconnect } from 'wagmi';
+import { supportedChains } from '@/config/chains';
+import NetworkSwitcher from '@/components/NetworkSwitcher';
+import NetworkInfo from '@/components/NetworkInfo';
 
 // Scramble animation hook
 const useScrambleText = (text: string, duration: number = 2000) => {
@@ -490,8 +493,8 @@ const NetworkButton = styled.button`
 
 const DisconnectButton = styled.button`
   width: 100%;
-  padding: 16px 0;
-  margin-top: 16px;
+  height: 56px;
+  padding: 0 16px;
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 20px;
   background: transparent;
@@ -805,6 +808,52 @@ const EmptyStateText = styled.p`
   margin: 0;
 `;
 
+const OmnichainBadge = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: linear-gradient(135deg, #00d2ff 0%, #0099cc 100%);
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+  border: 1px solid rgba(0, 210, 255, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 210, 255, 0.2);
+  animation: omnichainGlow 2s ease-in-out infinite alternate;
+  
+  @keyframes omnichainGlow {
+    from {
+      box-shadow: 0 2px 8px rgba(0, 210, 255, 0.2);
+    }
+    to {
+      box-shadow: 0 4px 16px rgba(0, 210, 255, 0.4);
+    }
+  }
+`;
+
+const DomainCardHeaderWithBadge = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  gap: 8px;
+`;
+
+const DomainNameWithBadge = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+`;
+
+const BadgeContainer = styled.div`
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+`;
+
 const ErrorMessage = styled.div`
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.3);
@@ -813,6 +862,22 @@ const ErrorMessage = styled.div`
   margin-bottom: 16px;
   color: #ef4444;
   font-size: 0.9rem;
+  text-align: center;
+  animation: fadeIn 0.3s ease-in-out;
+`;
+
+const NetworkWarningBanner = styled.div`
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  color: #ef4444;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
   text-align: center;
   animation: fadeIn 0.3s ease-in-out;
 `;
@@ -859,6 +924,7 @@ export default function Home() {
   });
   const [devnetIssue, setDevnetIssue] = useState(false);
   const [makeOmnichain, setMakeOmnichain] = useState(false);
+  const [domainInfoCache, setDomainInfoCache] = useState<{[key: string]: any}>({});
 
   const { showSuccess, showError, showWarning, NotificationContainer } = useNotification();
 
@@ -870,6 +936,9 @@ export default function Home() {
   const currentAddress = address || wagmiAccount.address;
   const currentChainId = chainId || 421614;
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  
+  // Check if user is on a supported network
+  const isWrongNetwork = walletConnected && !supportedChains.find(chain => chain.id === currentChainId);
 
   // Load user domains when wallet connects
   useEffect(() => {
@@ -1026,6 +1095,27 @@ export default function Home() {
     });
   };
 
+  // Load domain info from blockchain
+  const loadDomainInfo = async (domainName: string) => {
+    if (!window.ethereum || domainInfoCache[domainName]) return domainInfoCache[domainName];
+
+    try {
+      const contract = getOmnichainContract(window.ethereum, currentChainId);
+      const info = await contract.getDomainInfo(domainName.replace('.zeta', ''));
+      
+      // Cache the result
+      setDomainInfoCache(prev => ({
+        ...prev,
+        [domainName]: info
+      }));
+      
+      return info;
+    } catch (error) {
+      console.error('Failed to load domain info for', domainName, error);
+      return null;
+    }
+  };
+
   // Load user domains
   const loadUserDomains = async () => {
     if (!currentAddress) return;
@@ -1040,6 +1130,11 @@ export default function Home() {
       }));
       
       setUserDomains(displayDomains);
+
+      // Load domain info for each domain in background
+      displayDomains.forEach(domain => {
+        loadDomainInfo(domain.name);
+      });
     } catch (error) {
       console.error('Failed to load user domains:', error);
     }
@@ -1265,6 +1360,15 @@ export default function Home() {
 
           {activeTab === 'search' && (
             <SearchView>
+              {isWrongNetwork && (
+                <NetworkWarningBanner>
+                  <FaExclamationTriangle />
+                  <div>
+                    <strong>Wrong Network!</strong><br />
+                    Please switch to a supported network using the network switcher below.
+                  </div>
+                </NetworkWarningBanner>
+              )}
               <SearchContainer>
                 <SearchBox>
                   <SearchInput
@@ -1294,6 +1398,8 @@ export default function Home() {
                 </div>
               )}
 
+
+
               {errorMessage && (
                 <ErrorMessage>{errorMessage}</ErrorMessage>
               )}
@@ -1301,19 +1407,25 @@ export default function Home() {
               {searchResult && (
                 <DomainResult>
                   <DomainHeader>
-                    <DomainName>
-                      {searchResult.name}.zeta
-                    </DomainName>
+                    <DomainNameWithBadge>
+                      <DomainName>
+                        {searchResult.name}.zeta
+                      </DomainName>
+                      {makeOmnichain && (
+                        <BadgeContainer>
+                          <OmnichainBadge>
+                            <FaGlobe size={10} />
+                            Will be Omnichain
+                          </OmnichainBadge>
+                        </BadgeContainer>
+                      )}
+                    </DomainNameWithBadge>
                     <AvailabilityBadge $available={searchResult.available}>
                       {searchResult.available ? <FaCheck /> : <FaTimes />}
                       {searchResult.available ? 'Available' : 'Taken'}
                     </AvailabilityBadge>
                   </DomainHeader>
-                  {!walletConnected && (
-                    <div style={{ marginTop: 8, marginBottom: 8 }}>
-                      <ConnectButton showBalance={false} accountStatus="address" />
-                    </div>
-                  )}
+
 
                   {searchResult.available && (
                     <>
@@ -1326,6 +1438,8 @@ export default function Home() {
                           <PriceLabel>for 1 year</PriceLabel>
                         </PriceInfo>
                       </DomainInfo>
+
+                      <NetworkInfo />
 
                       <OmnichainOption>
                         <OmnichainCheckbox
@@ -1343,8 +1457,15 @@ export default function Home() {
                       </OmnichainOption>
 
                       <RegisterButton
-                        onClick={registerDomain}
-                        disabled={isRegistering || !walletConnected}
+                        onClick={() => {
+                          if (!walletConnected) {
+                            // Trigger wallet connection
+                            document.querySelector('[data-testid="rk-connect-button"]')?.click();
+                          } else {
+                            registerDomain();
+                          }
+                        }}
+                        disabled={isRegistering}
                       >
                         {isRegistering ? 'Registering...' : (!walletConnected ? 'Connect to Register' : `Register ${makeOmnichain ? 'Omnichain ' : ''}Domain`)}
                       </RegisterButton>
@@ -1356,10 +1477,16 @@ export default function Home() {
               {!walletConnected && null}
 
               {walletConnected && (
-                <DisconnectButton onClick={() => { try { wagmiDisconnect?.(); } catch (e) {} try { disconnect(); } catch (e) {} }}>
-                  <FaSignOutAlt />
-                  Disconnect ({formatAddress(currentAddress || '')})
-                </DisconnectButton>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'stretch', marginTop: 16 }}>
+                  <NetworkSwitcher style={{ flex: '0 0 auto' }} />
+                  <DisconnectButton 
+                    onClick={() => { try { wagmiDisconnect?.(); } catch (e) {} try { disconnect(); } catch (e) {} }}
+                    style={{ flex: 1 }}
+                  >
+                    <FaSignOutAlt />
+                    Disconnect ({formatAddress(currentAddress || '')})
+                  </DisconnectButton>
+                </div>
               )}
             </SearchView>
           )}
@@ -1402,8 +1529,18 @@ export default function Home() {
                           
                           return (
                             <DomainCard key={index}>
-                              <DomainCardHeader>
-                                <DomainCardName>{domain.name}</DomainCardName>
+                              <DomainCardHeaderWithBadge>
+                                <DomainNameWithBadge>
+                                  <DomainCardName>{domain.name}</DomainCardName>
+                                  <BadgeContainer>
+                                    {domainInfoCache[domain.name]?.isOmnichain && (
+                                      <OmnichainBadge>
+                                        <FaGlobe size={10} />
+                                        Omnichain
+                                      </OmnichainBadge>
+                                    )}
+                                  </BadgeContainer>
+                                </DomainNameWithBadge>
                                 <DomainStatusContainer>
                                   <DomainStatus status={isExpired ? 'expired' : 'active'}>
                                     {isExpired ? 'Expired' : 'Active'}
@@ -1415,7 +1552,7 @@ export default function Home() {
                                     </ListingStatus>
                                   )}
                                 </DomainStatusContainer>
-                              </DomainCardHeader>
+                              </DomainCardHeaderWithBadge>
                               <DomainCardInfo>
                                 <span>Registered: {formatDate(domain.registration_date)}</span>
                                 <span>Expires: {formatDate(domain.expiration_date)}</span>

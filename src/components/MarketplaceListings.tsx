@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { FaEthereum, FaClock, FaGavel, FaTag, FaSearch, FaChevronUp, FaChevronDown } from 'react-icons/fa';
+import { FaEthereum, FaClock, FaGavel, FaTag, FaSearch, FaChevronUp, FaChevronDown, FaGlobe } from 'react-icons/fa';
 import { marketplaceService, MarketplaceListing } from '@/lib/marketplace';
-import { useAccount } from 'wagmi';
+import { getOmnichainContract } from '@/lib/contract';
+import { useAccount, useChainId } from 'wagmi';
 
 const MarketplaceContainer = styled.div`
   width: 100%;
@@ -133,6 +134,37 @@ const DomainName = styled.h3`
   align-items: center;
   gap: 6px;
   overflow: hidden;
+`;
+
+const OmnichainBadge = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  background: linear-gradient(135deg, #00d2ff 0%, #0099cc 100%);
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: white;
+  border: 1px solid rgba(0, 210, 255, 0.3);
+  box-shadow: 0 2px 6px rgba(0, 210, 255, 0.2);
+  animation: omnichainGlow 2s ease-in-out infinite alternate;
+  
+  @keyframes omnichainGlow {
+    from {
+      box-shadow: 0 2px 6px rgba(0, 210, 255, 0.2);
+    }
+    to {
+      box-shadow: 0 3px 12px rgba(0, 210, 255, 0.4);
+    }
+  }
+`;
+
+const DomainNameWithBadge = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
@@ -241,11 +273,34 @@ export function MarketplaceListings({ onBuyDomain, onMakeOffer }: MarketplaceLis
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentListingIndex, setCurrentListingIndex] = useState(0);
+    const [domainInfoCache, setDomainInfoCache] = useState<{[key: string]: any}>({});
     const { address } = useAccount();
+    const currentChainId = useChainId() || 421614;
 
     useEffect(() => {
         loadListings();
     }, []);
+
+    // Load domain info from blockchain
+    const loadDomainInfo = async (domainName: string) => {
+        if (!window.ethereum || domainInfoCache[domainName]) return domainInfoCache[domainName];
+
+        try {
+            const contract = getOmnichainContract(window.ethereum, currentChainId);
+            const info = await contract.getDomainInfo(domainName.replace('.zeta', ''));
+            
+            // Cache the result
+            setDomainInfoCache(prev => ({
+                ...prev,
+                [domainName]: info
+            }));
+            
+            return info;
+        } catch (error) {
+            console.error('Failed to load domain info for', domainName, error);
+            return null;
+        }
+    };
 
     const loadListings = async () => {
         try {
@@ -253,6 +308,13 @@ export function MarketplaceListings({ onBuyDomain, onMakeOffer }: MarketplaceLis
             const data = await marketplaceService.getActiveListings();
             setListings(data);
             setFilteredListings(data);
+
+            // Load domain info for each listing in background
+            data.forEach(listing => {
+                if (listing.domain?.name) {
+                    loadDomainInfo(`${listing.domain.name}.zeta`);
+                }
+            });
         } catch (error) {
             console.error('Failed to load marketplace listings:', error);
         } finally {
@@ -392,10 +454,18 @@ export function MarketplaceListings({ onBuyDomain, onMakeOffer }: MarketplaceLis
                         {filteredListings.map((listing) => (
                             <ListingCard key={listing.id}>
                                 <CardHeader>
-                                    <DomainName>
-                                        <FaEthereum size={18} />
-                                        {listing.domain?.name ? `${listing.domain.name}.zeta` : 'Unknown Domain'}
-                                    </DomainName>
+                                    <DomainNameWithBadge>
+                                        <DomainName>
+                                            <FaEthereum size={18} />
+                                            {listing.domain?.name ? `${listing.domain.name}.zeta` : 'Unknown Domain'}
+                                        </DomainName>
+                                        {listing.domain?.name && domainInfoCache[`${listing.domain.name}.zeta`]?.isOmnichain && (
+                                            <OmnichainBadge>
+                                                <FaGlobe size={8} />
+                                                Omnichain
+                                            </OmnichainBadge>
+                                        )}
+                                    </DomainNameWithBadge>
 
                                     <ListingInfo>
                                         <Price>

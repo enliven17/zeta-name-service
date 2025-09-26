@@ -43,10 +43,12 @@ module.exports = {
 
     // Ethereum Sepolia - Cross-chain support
     ethereumSepolia: {
-      url: process.env.ETHEREUM_SEPOLIA_RPC_URL || "https://sepolia.infura.io/v3/YOUR_INFURA_KEY",
+      url: process.env.ETHEREUM_SEPOLIA_RPC_URL || "https://1rpc.io/sepolia",
       chainId: 11155111,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       timeout: 300000,
+      gasPrice: 20000000000, // 20 gwei
+      gas: 8000000,
     },
 
     // BSC Testnet - Cross-chain support
@@ -55,6 +57,7 @@ module.exports = {
       chainId: 97,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       timeout: 300000,
+      gasPrice: 10000000000, // 10 gwei
     },
 
     // Polygon Mumbai - Cross-chain support
@@ -63,6 +66,7 @@ module.exports = {
       chainId: 80001,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       timeout: 300000,
+      gasPrice: 30000000000, // 30 gwei
     },
 
     // Local development network

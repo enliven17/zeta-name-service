@@ -1,11 +1,12 @@
 "use client";
 
 import styled from 'styled-components';
-import { useState } from 'react';
-import { FaPaperPlane } from 'react-icons/fa';
-import { useAccount } from 'wagmi';
+import { useState, useEffect } from 'react';
+import { FaPaperPlane, FaGlobe, FaArrowRight, FaInfoCircle } from 'react-icons/fa';
+import { useAccount, useChainId } from 'wagmi';
 import { domainService, Domain } from '@/lib/supabase';
-import { getCreditContract } from '@/lib/contract';
+import { getOmnichainContract } from '@/lib/contract';
+import { supportedChains, getChainConfig, isCrossChainSupported, getCrossChainRoute, getContractAddresses } from '@/config/chains';
 
 interface DomainTransferProps {
   domain: Domain;
@@ -188,6 +189,109 @@ const SuccessMessage = styled.div`
   text-align: center;
 `;
 
+const TransferTypeSelector = styled.div`
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+`;
+
+const TransferTypeOption = styled.button<{ active: boolean }>`
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid ${props => props.active ? '#00d2ff' : 'rgba(255, 255, 255, 0.2)'};
+  border-radius: 12px;
+  background: ${props => props.active ? 'rgba(0, 210, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)'};
+  color: ${props => props.active ? '#00d2ff' : 'rgba(255, 255, 255, 0.7)'};
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  
+  &:hover {
+    border-color: ${props => props.active ? '#00d2ff' : 'rgba(255, 255, 255, 0.4)'};
+    background: ${props => props.active ? 'rgba(0, 210, 255, 0.15)' : 'rgba(255, 255, 255, 0.1)'};
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const ChainSelector = styled.div`
+  margin-bottom: 16px;
+`;
+
+const ChainGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+`;
+
+const ChainOption = styled.button<{ active: boolean; disabled?: boolean }>`
+  padding: 12px;
+  border: 2px solid ${props => props.active ? '#00d2ff' : 'rgba(255, 255, 255, 0.2)'};
+  border-radius: 8px;
+  background: ${props => props.active ? 'rgba(0, 210, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)'};
+  color: ${props => props.active ? '#00d2ff' : 'white'};
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  transition: all 0.3s ease;
+  opacity: ${props => props.disabled ? 0.5 : 1};
+  
+  &:hover:not(:disabled) {
+    border-color: ${props => props.active ? '#00d2ff' : 'rgba(255, 255, 255, 0.4)'};
+  }
+`;
+
+const CrossChainInfo = styled.div`
+  background: rgba(0, 210, 255, 0.1);
+  border: 1px solid rgba(0, 210, 255, 0.3);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+`;
+
+const InfoRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
+
+const InfoLabel = styled.span`
+  color: rgba(255, 255, 255, 0.7);
+`;
+
+const InfoValue = styled.span`
+  color: #00d2ff;
+  font-weight: 600;
+`;
+
+const DomainTypeInfo = styled.div`
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  color: #ffc107;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
 export const DomainTransfer: React.FC<DomainTransferProps> = ({
   domain,
   onTransferComplete,
@@ -197,16 +301,55 @@ export const DomainTransfer: React.FC<DomainTransferProps> = ({
   const [isTransferring, setIsTransferring] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [transferType, setTransferType] = useState<'same-chain' | 'cross-chain'>('same-chain');
+  const [targetChainId, setTargetChainId] = useState<number>(421614);
+  const [domainInfo, setDomainInfo] = useState<any>(null);
+  const [isLoadingDomainInfo, setIsLoadingDomainInfo] = useState(false);
 
   const { address } = useAccount();
+  const currentChainId = useChainId() || 421614;
 
   const validateAddress = (addr: string): boolean => {
     return /^0x[a-fA-F0-9]{40}$/.test(addr);
   };
 
+  // Check if contract is deployed on a chain
+  const isContractDeployed = (chainId: number): boolean => {
+    const addresses = getContractAddresses(chainId);
+    return !!(addresses?.nameService && addresses.nameService !== '');
+  };
+
+  // Load domain info to check if it's omnichain
+  useEffect(() => {
+    const loadDomainInfo = async () => {
+      if (!window.ethereum) return;
+      
+      setIsLoadingDomainInfo(true);
+      try {
+        const contract = getOmnichainContract(window.ethereum, currentChainId);
+        const info = await contract.getDomainInfo(domain.name.replace('.zeta', ''));
+        setDomainInfo(info);
+        
+        // Set default target chain (different from current, and deployed)
+        const deployedChains = supportedChains.filter(chain => 
+          chain.id !== currentChainId && isContractDeployed(chain.id)
+        );
+        if (deployedChains.length > 0) {
+          setTargetChainId(deployedChains[0].id);
+        }
+      } catch (error) {
+        console.error('Failed to load domain info:', error);
+      } finally {
+        setIsLoadingDomainInfo(false);
+      }
+    };
+
+    loadDomainInfo();
+  }, [domain.name, currentChainId]);
 
 
-  const handleSignatureTransfer = async () => {
+
+  const handleTransfer = async () => {
     if (!validateAddress(toAddress)) {
       setErrorMessage('Invalid wallet address');
       return;
@@ -217,25 +360,44 @@ export const DomainTransfer: React.FC<DomainTransferProps> = ({
       return;
     }
 
+    // Check if cross-chain transfer is possible
+    if (transferType === 'cross-chain') {
+      if (!domainInfo?.isOmnichain) {
+        setErrorMessage('This domain is not configured for cross-chain transfers');
+        return;
+      }
+      
+      if (!isCrossChainSupported(currentChainId, targetChainId)) {
+        setErrorMessage(`Cross-chain transfer not supported: ${currentChainId} → ${targetChainId}`);
+        return;
+      }
+    }
+
     setIsTransferring(true);
     setErrorMessage('');
 
     try {
       let transactionHash = '';
       
-      // Create on-chain transfer signature (REQUIRED - no fallback)
       if (!window.ethereum) {
         throw new Error('No wallet connected. Please connect your wallet to transfer domains.');
       }
 
-      console.log('🔗 Submitting on-chain transfer...');
-      const contract = getCreditContract(window.ethereum);
-      const txHash = await contract.transferDomain(domain.name.replace('.ctc', '').replace('.zeta', ''), toAddress);
-      transactionHash = txHash;
+      const contract = getOmnichainContract(window.ethereum, currentChainId);
+      const domainName = domain.name.replace('.zeta', '');
 
-      console.log('✅ On-chain transfer successful, hash:', txHash);
-      console.log('📝 Updating database with sender:', address, 'recipient:', toAddress);
+      if (transferType === 'same-chain') {
+        console.log('🔗 Submitting same-chain transfer...');
+        transactionHash = await contract.transferDomain(domainName, toAddress);
+        console.log('✅ Same-chain transfer successful:', transactionHash);
+      } else {
+        console.log('🌐 Submitting cross-chain transfer...');
+        console.log('Target chain:', targetChainId);
+        transactionHash = await contract.crossChainTransfer(domainName, toAddress, targetChainId);
+        console.log('✅ Cross-chain transfer initiated:', transactionHash);
+      }
 
+      // Update database
       if (!address) throw new Error('Sender address is missing');
       await domainService.directDomainTransfer(domain.id, address, toAddress, transactionHash);
       
@@ -249,22 +411,24 @@ export const DomainTransfer: React.FC<DomainTransferProps> = ({
         
         if (activeListing) {
           console.log('📝 Updating marketplace listing ownership...');
-          // Update the listing's seller_address to the new owner
           await marketplaceService.updateListingOwnership(activeListing.id, toAddress);
           console.log('✅ Marketplace listing ownership updated');
         }
       } catch (error) {
         console.error('⚠️ Failed to update marketplace listing:', error);
-        // Don't fail the transfer if marketplace update fails
       }
 
-      setSuccessMessage('Domain successfully transferred! The domain now appears in the recipient\'s profile.');
+      const successMsg = transferType === 'cross-chain' 
+        ? `Cross-chain transfer initiated! The domain will appear on ${getChainConfig(targetChainId)?.name} in 2-5 minutes.`
+        : 'Domain successfully transferred! The domain now appears in the recipient\'s profile.';
+        
+      setSuccessMessage(successMsg);
       
       // Close modal after success
       setTimeout(() => {
         onTransferComplete();
         onClose();
-      }, 2000);
+      }, 3000);
 
     } catch (error: any) {
       console.error('Transfer failed:', error);
@@ -305,32 +469,122 @@ export const DomainTransfer: React.FC<DomainTransferProps> = ({
         )}
 
         <TransferForm>
-          <div style={{ marginBottom: '16px' }}>
-            <p style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.9rem', margin: '0 0 16px 0' }}>
-              Sign a transaction to transfer this domain to another wallet. The domain will immediately appear in the recipient's profile.
-            </p>
-          </div>
+          {isLoadingDomainInfo ? (
+            <div style={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.7)', padding: '20px' }}>
+              Loading domain information...
+            </div>
+          ) : (
+            <>
+              {domainInfo && !domainInfo.isOmnichain && (
+                <DomainTypeInfo>
+                  <FaInfoCircle />
+                  This domain is not configured for cross-chain transfers. Only same-chain transfers are available.
+                </DomainTypeInfo>
+              )}
 
-          <InputGroup>
-            <Label>Recipient Wallet Address</Label>
-            <AddressInput
-              type="text"
-              placeholder="0x..."
-              value={toAddress}
-              onChange={(e) => {
-                setToAddress(e.target.value);
-                if (errorMessage) setErrorMessage('');
-              }}
-            />
-          </InputGroup>
+              <TransferTypeSelector>
+                <TransferTypeOption
+                  active={transferType === 'same-chain'}
+                  onClick={() => setTransferType('same-chain')}
+                >
+                  <FaPaperPlane />
+                  Same Chain
+                </TransferTypeOption>
+                <TransferTypeOption
+                  active={transferType === 'cross-chain'}
+                  disabled={!domainInfo?.isOmnichain}
+                  onClick={() => domainInfo?.isOmnichain && setTransferType('cross-chain')}
+                >
+                  <FaGlobe />
+                  Cross-Chain
+                </TransferTypeOption>
+              </TransferTypeSelector>
 
-          <TransferButton
-            onClick={handleSignatureTransfer}
-            disabled={isTransferring || !toAddress.trim() || !validateAddress(toAddress)}
-          >
-            <FaPaperPlane />
-            {isTransferring ? 'Processing...' : 'Transfer Domain'}
-          </TransferButton>
+              {transferType === 'cross-chain' && domainInfo?.isOmnichain && (
+                <>
+                  <ChainSelector>
+                    <Label>Target Blockchain</Label>
+                    <ChainGrid>
+                      {supportedChains.map((chain) => {
+                        const isDeployed = isContractDeployed(chain.id);
+                        const isDisabled = chain.id === currentChainId || 
+                                         !isCrossChainSupported(currentChainId, chain.id) || 
+                                         !isDeployed;
+                        
+                        return (
+                          <ChainOption
+                            key={chain.id}
+                            active={targetChainId === chain.id}
+                            disabled={isDisabled}
+                            onClick={() => {
+                              if (!isDisabled) {
+                                setTargetChainId(chain.id);
+                              }
+                            }}
+                          >
+                            {chain.name}
+                            {!isDeployed && (
+                              <div style={{ fontSize: '0.7rem', color: 'rgba(255, 255, 255, 0.5)', marginTop: '2px' }}>
+                                Coming Soon
+                              </div>
+                            )}
+                          </ChainOption>
+                        );
+                      })}
+                    </ChainGrid>
+                  </ChainSelector>
+
+                  {isCrossChainSupported(currentChainId, targetChainId) && (
+                    <CrossChainInfo>
+                      <InfoRow>
+                        <InfoLabel>Estimated Time:</InfoLabel>
+                        <InfoValue>{getCrossChainRoute(currentChainId, targetChainId)?.estimatedTime || '2-5 minutes'}</InfoValue>
+                      </InfoRow>
+                      <InfoRow>
+                        <InfoLabel>Cross-Chain Fee:</InfoLabel>
+                        <InfoValue>{getCrossChainRoute(currentChainId, targetChainId)?.fee || '0.0001 ETH'}</InfoValue>
+                      </InfoRow>
+                      <InfoRow>
+                        <InfoLabel>Route:</InfoLabel>
+                        <InfoValue>
+                          {getChainConfig(currentChainId)?.shortName} <FaArrowRight style={{ margin: '0 4px' }} /> {getChainConfig(targetChainId)?.shortName}
+                        </InfoValue>
+                      </InfoRow>
+                    </CrossChainInfo>
+                  )}
+                </>
+              )}
+
+              <InputGroup>
+                <Label>Recipient Wallet Address</Label>
+                <AddressInput
+                  type="text"
+                  placeholder="0x..."
+                  value={toAddress}
+                  onChange={(e) => {
+                    setToAddress(e.target.value);
+                    if (errorMessage) setErrorMessage('');
+                  }}
+                />
+              </InputGroup>
+
+              <TransferButton
+                onClick={handleTransfer}
+                disabled={
+                  isTransferring || 
+                  !toAddress.trim() || 
+                  !validateAddress(toAddress) ||
+                  (transferType === 'cross-chain' && !domainInfo?.isOmnichain)
+                }
+              >
+                <FaPaperPlane />
+                {isTransferring 
+                  ? (transferType === 'cross-chain' ? 'Initiating Cross-Chain Transfer...' : 'Processing Transfer...') 
+                  : (transferType === 'cross-chain' ? 'Start Cross-Chain Transfer' : 'Transfer Domain')
+                }
+              </TransferButton>
+            </>
+          )}
         </TransferForm>
 
 

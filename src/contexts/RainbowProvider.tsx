@@ -3,28 +3,36 @@
 import React from 'react';
 import { WagmiProvider, createConfig, http } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { RainbowKitProvider, darkTheme, getDefaultWallets } from '@rainbow-me/rainbowkit';
-import { arbitrumSepolia, zetaChainTestnet, supportedChains } from '../config/chains';
+import { RainbowKitProvider, darkTheme, getDefaultWallets, Chain } from '@rainbow-me/rainbowkit';
+import { arbitrumSepolia, zetaChainTestnet, ethereumSepolia, bscTestnet, polygonMumbai, supportedChains } from '../config/chains';
 import '@rainbow-me/rainbowkit/styles.css';
 
 // Get RPC URLs from environment
 const ARB_SEPOLIA_RPC_URL = process.env.NEXT_PUBLIC_ARB_SEPOLIA_RPC_URL || 'https://sepolia-rollup.arbitrum.io/rpc';
 const ZETACHAIN_TESTNET_RPC_URL = process.env.NEXT_PUBLIC_ZETACHAIN_TESTNET_RPC_URL || 'https://zetachain-athens-evm.blockpi.network/v1/rpc/public';
+const ETHEREUM_SEPOLIA_RPC_URL = process.env.ETHEREUM_SEPOLIA_RPC_URL || 'https://1rpc.io/sepolia';
+const BSC_TESTNET_RPC_URL = process.env.BSC_TESTNET_RPC_URL || 'https://data-seed-prebsc-1-s1.binance.org:8545';
+const POLYGON_MUMBAI_RPC_URL = process.env.POLYGON_MUMBAI_RPC_URL || 'https://rpc-mumbai.maticvigil.com';
 
 const { connectors } = getDefaultWallets({
   appName: 'Zeta Name Service - Omnichain Domains',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '226b43b703188d269fb70d02c107c34e',
+  chains: supportedChains as readonly [Chain, ...Chain[]],
 });
 
 // Create wagmi config with multiple chains
 const config = createConfig({
-  chains: supportedChains as any,
+  chains: supportedChains as readonly [Chain, ...Chain[]],
   connectors,
   transports: {
     [arbitrumSepolia.id]: http(ARB_SEPOLIA_RPC_URL),
     [zetaChainTestnet.id]: http(ZETACHAIN_TESTNET_RPC_URL),
+    [ethereumSepolia.id]: http(ETHEREUM_SEPOLIA_RPC_URL),
+    [bscTestnet.id]: http(BSC_TESTNET_RPC_URL),
+    [polygonMumbai.id]: http(POLYGON_MUMBAI_RPC_URL),
   },
   ssr: false,
+  multiInjectedProviderDiscovery: false,
 });
 
 const queryClient = new QueryClient({
@@ -50,8 +58,9 @@ export function RainbowProvider({ children }: { children: React.ReactNode }) {
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider 
+          chains={supportedChains as readonly [Chain, ...Chain[]]}
           theme={customTheme}
-          modalSize="compact"
+          modalSize="wide"
           initialChain={arbitrumSepolia}
           showRecentTransactions={true}
           coolMode={true}
