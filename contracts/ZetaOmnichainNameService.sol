@@ -81,9 +81,16 @@ contract ZetaOmnichainNameService is Ownable, IZetaReceiver {
     uint256 public constant BASE_TRANSFER_FEE = 0.0001 ether;
 
     // ZetaChain specific addresses (will be set during deployment)
-    address public zetaConnector;
-    address public zetaToken;
+    IZetaConnector public zetaConnector;
+    IERC20 public zetaToken;
     address public tssAddress;
+    
+    // Cross-chain message types
+    uint8 constant CROSS_CHAIN_TRANSFER = 1;
+    uint8 constant CROSS_CHAIN_MINT = 2;
+    
+    // Gas limits for cross-chain operations
+    uint256 constant CROSS_CHAIN_GAS_LIMIT = 500000;
 
     event Registered(
         string indexed name, 
@@ -112,8 +119,18 @@ contract ZetaOmnichainNameService is Ownable, IZetaReceiver {
     event ChainUpdated(uint256 chainId, bool isSupported);
     event ZetaConfigUpdated(address connector, address token, address tss);
 
-    constructor(address initialOwner) {
+    constructor(
+        address initialOwner,
+        address _zetaConnector,
+        address _zetaToken,
+        address _tssAddress
+    ) {
         _transferOwnership(initialOwner);
+        
+        // Initialize ZetaChain components
+        zetaConnector = IZetaConnector(_zetaConnector);
+        zetaToken = IERC20(_zetaToken);
+        tssAddress = _tssAddress;
         
         // Initialize Arbitrum Sepolia as primary chain
         supportedChains[421614] = ChainConfig({
@@ -280,7 +297,7 @@ contract ZetaOmnichainNameService is Ownable, IZetaReceiver {
         
         require(sourceChainConfig.isSupported, "SOURCE_CHAIN_NOT_SUPPORTED");
         require(targetChainConfig.isSupported, "TARGET_CHAIN_NOT_SUPPORTED");
-        require(msg.value == sourceChainConfig.transferFee, "INCORRECT_FEE");
+        require(msg.value >= sourceChainConfig.transferFee, "INSUFFICIENT_FEE");
         require(to != address(0), "INVALID_RECIPIENT");
         require(targetChainId != currentChainId, "SAME_CHAIN");
 
@@ -295,9 +312,38 @@ contract ZetaOmnichainNameService is Ownable, IZetaReceiver {
             n, msg.sender, to, currentChainId, targetChainId, block.timestamp
         ));
 
-        // Update domain record for cross-chain transfer
-        nameToRecord[n].owner = to;
-        nameToRecord[n].sourceChainId = targetChainId;
+        // Mark message as processed to prevent replay
+        processedMessages[messageId] = true;
+
+        // Burn/Lock domain on source chain
+        delete nameToRecord[n];
+
+        // Prepare cross-chain message
+        bytes memory message = abi.encode(
+            CROSS_CHAIN_MINT,
+            n,
+            to,
+            rec.expiresAt,
+            rec.isOmnichain,
+            messageId
+        );
+
+        // Send cross-chain message via ZetaChain
+        if (address(zetaConnector) != address(0)) {
+            // Calculate required ZETA for gas
+            uint256 zetaValueAndGas = msg.value; // Use ETH sent as gas
+            
+            ZetaInterfaces.SendInput memory input = ZetaInterfaces.SendInput({
+                destinationChainId: targetChainId,
+                destinationAddress: abi.encodePacked(address(this)),
+                destinationGasLimit: CROSS_CHAIN_GAS_LIMIT,
+                message: message,
+                zetaValueAndGas: zetaValueAndGas,
+                zetaParams: ""
+            });
+
+            zetaConnector.send(input);
+        }
 
         emit CrossChainTransfer(n, msg.sender, to, currentChainId, targetChainId, messageId);
         emit Transferred(n, msg.sender, to, currentChainId, targetChainId);
@@ -361,5 +407,107 @@ contract ZetaOmnichainNameService is Ownable, IZetaReceiver {
 
     function unpause() external onlyOwner {
         // Implement unpause functionality if needed
+    }
+
+    // ZetaChain message handlers
+    function onZetaMessage(ZetaInterfaces.ZetaMessage calldata zetaMessage) external override {
+        require(msg.sender == address(zetaConnector), "ONLY_CONNECTOR");
+        
+        // Decode the cross-chain message
+        (
+            uint8 messageType,
+            string memory domainName,
+            address recipient,
+            uint64 expiresAt,
+            bool isOmnichain,
+            bytes32 messageId
+        ) = abi.decode(zetaMessage.message, (uint8, string, address, uint64, bool, bytes32));
+
+        // Prevent replay attacks
+        require(!processedMessages[messageId], "MESSAGE_ALREADY_PROCESSED");
+        processedMessages[messageId] = true;
+
+        if (messageType == CROSS_CHAIN_MINT) {
+            // Mint domain on target chain
+            nameToRecord[domainName] = DomainRecord({
+                owner: recipient,
+                expiresAt: expiresAt,
+                sourceChainId: zetaMessage.sourceChainId,
+                isOmnichain: isOmnichain
+            });
+
+            emit Registered(
+                domainName,
+                recipient,
+                expiresAt,
+                block.chainid,
+                isOmnichain
+            );
+
+            emit Transferred(
+                domainName,
+                address(0), // From zero address (minted)
+                recipient,
+                zetaMessage.sourceChainId,
+                block.chainid
+            );
+        }
+    }
+
+    function onZetaRevert(ZetaInterfaces.ZetaRevert calldata zetaRevert) external override {
+        require(msg.sender == address(zetaConnector), "ONLY_CONNECTOR");
+        
+        // Handle failed cross-chain transfer
+        // Restore domain on source chain if needed
+        (
+            uint8 messageType,
+            string memory domainName,
+            address originalOwner,
+            uint64 expiresAt,
+            bool isOmnichain,
+            bytes32 messageId
+        ) = abi.decode(zetaRevert.message, (uint8, string, address, uint64, bool, bytes32));
+
+        if (messageType == CROSS_CHAIN_MINT) {
+            // Restore domain on source chain
+            nameToRecord[domainName] = DomainRecord({
+                owner: originalOwner,
+                expiresAt: expiresAt,
+                sourceChainId: zetaRevert.sourceChainId,
+                isOmnichain: isOmnichain
+            });
+        }
+    }
+
+    // Admin function to update ZetaChain configuration
+    function updateZetaConfig(
+        address _zetaConnector,
+        address _zetaToken,
+        address _tssAddress
+    ) external onlyOwner {
+        zetaConnector = IZetaConnector(_zetaConnector);
+        zetaToken = IERC20(_zetaToken);
+        tssAddress = _tssAddress;
+        
+        emit ZetaConfigUpdated(_zetaConnector, _zetaToken, _tssAddress);
+    }
+
+    // Emergency function to recover stuck domains
+    function emergencyRecoverDomain(
+        string calldata name,
+        address owner,
+        uint64 expiresAt,
+        uint256 sourceChainId,
+        bool isOmnichain
+    ) external onlyOwner {
+        string memory n = _toLower(name);
+        nameToRecord[n] = DomainRecord({
+            owner: owner,
+            expiresAt: expiresAt,
+            sourceChainId: sourceChainId,
+            isOmnichain: isOmnichain
+        });
+        
+        emit Registered(n, owner, expiresAt, block.chainid, isOmnichain);
     }
 }

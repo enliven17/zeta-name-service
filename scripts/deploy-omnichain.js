@@ -14,6 +14,25 @@ async function main() {
   console.log("- Chain ID:", network.chainId.toString());
   console.log("- Balance:", ethers.formatEther(await ethers.provider.getBalance(deployer.address)), "ETH\n");
 
+  // ZetaChain configuration by network
+  const zetaConfig = {
+    421614: { // Arbitrum Sepolia
+      connector: "0x239e96c8f17C85c30100AC26F635Ea15f23E9c67", // ZetaChain Connector on Arbitrum Sepolia
+      token: "0x5F0b1a82749cb4E2278EC87F8BF6B618dC71a8bf", // ZETA token on Arbitrum Sepolia
+      tss: "0x70e967acFcC17c3941E87562161406d41676FD83" // TSS address
+    },
+    7001: { // ZetaChain Testnet
+      connector: "0x239e96c8f17C85c30100AC26F635Ea15f23E9c67", // ZetaChain Connector on ZetaChain
+      token: "0x5F0b1a82749cb4E2278EC87F8BF6B618dC71a8bf", // ZETA token on ZetaChain
+      tss: "0x70e967acFcC17c3941E87562161406d41676FD83" // TSS address
+    },
+    11155111: { // Ethereum Sepolia
+      connector: "0x239e96c8f17C85c30100AC26F635Ea15f23E9c67", // ZetaChain Connector on Ethereum Sepolia
+      token: "0x5F0b1a82749cb4E2278EC87F8BF6B618dC71a8bf", // ZETA token on Ethereum Sepolia
+      tss: "0x70e967acFcC17c3941E87562161406d41676FD83" // TSS address
+    }
+  };
+
   // Deployment configuration based on network
   const deploymentConfig = {
     421614: { // Arbitrum Sepolia
@@ -44,8 +63,25 @@ async function main() {
   try {
     // 1. Deploy ZetaOmnichainNameService
     console.log("📝 Deploying ZetaOmnichainNameService...");
+    
+    // Get ZetaChain configuration for current network
+    const currentZetaConfig = zetaConfig[network.chainId.toString()];
+    if (!currentZetaConfig) {
+      throw new Error(`ZetaChain configuration not found for chain ID: ${network.chainId}`);
+    }
+    
+    console.log("🔗 Using ZetaChain config:");
+    console.log("- Connector:", currentZetaConfig.connector);
+    console.log("- Token:", currentZetaConfig.token);
+    console.log("- TSS:", currentZetaConfig.tss);
+    
     const ZetaOmnichainNameService = await ethers.getContractFactory("ZetaOmnichainNameService");
-    const nameService = await ZetaOmnichainNameService.deploy(deployer.address);
+    const nameService = await ZetaOmnichainNameService.deploy(
+      deployer.address,
+      currentZetaConfig.connector,
+      currentZetaConfig.token,
+      currentZetaConfig.tss
+    );
     await nameService.waitForDeployment();
     const nameServiceAddress = await nameService.getAddress();
     
