@@ -5,13 +5,27 @@ import { RainbowProvider } from "@/contexts/RainbowProvider";
 import { ClientLoadingManager } from "@/components/ClientLoadingManager";
 
 export const metadata: Metadata = {
-  title: "Zeta Name Service",
-  description: "Get your own .zeta domain on Arbitrum Sepolia with ZetaChain integration",
+  title: "Zeta Name Service - Omnichain Domains",
+  description: "Register and manage .zeta domains across multiple blockchains with ZetaChain's omnichain technology. Trade domains seamlessly on Arbitrum Sepolia, ZetaChain, and more.",
+  keywords: "zeta, zetachain, omnichain, domains, blockchain, arbitrum, sepolia, cross-chain, web3, nft",
+  authors: [{ name: "Zeta Name Service Team" }],
+  openGraph: {
+    title: "Zeta Name Service - Omnichain Domains",
+    description: "Register and manage .zeta domains across multiple blockchains with ZetaChain's omnichain technology.",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Zeta Name Service - Omnichain Domains",
+    description: "Register and manage .zeta domains across multiple blockchains with ZetaChain's omnichain technology.",
+  },
   icons: {
     icon: '/icon.png',
     shortcut: '/favicon.ico',
     apple: '/icon.png',
   },
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({

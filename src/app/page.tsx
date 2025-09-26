@@ -6,7 +6,8 @@ import { FaSearch, FaUser, FaWallet, FaSignOutAlt, FaGlobe, FaCheck, FaTimes, Fa
 import { createNoise3D } from "simplex-noise";
 import { useWallet } from '@/contexts/WalletContext';
 import { domainService, Domain as SupabaseDomain } from '@/lib/supabase';
-import { getCreditContract } from '@/lib/contract';
+import { getOmnichainContract } from '@/lib/contract';
+import { useChainId } from 'wagmi';
 import { DomainTransfer } from '@/components/DomainTransfer';
 import CreateListingModal from '@/components/CreateListingModal';
 import { MarketplaceListings } from '@/components/MarketplaceListings';
@@ -370,6 +371,50 @@ const Price = styled.div`
 const PriceLabel = styled.div`
   font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.6);
+`;
+
+const OmnichainOption = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 16px;
+  background: rgba(0, 210, 255, 0.1);
+  border: 1px solid rgba(0, 210, 255, 0.2);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: rgba(0, 210, 255, 0.15);
+    border-color: rgba(0, 210, 255, 0.3);
+  }
+`;
+
+const OmnichainCheckbox = styled.input`
+  width: 20px;
+  height: 20px;
+  accent-color: #00d2ff;
+  cursor: pointer;
+`;
+
+const OmnichainLabel = styled.label`
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  flex: 1;
+  
+  .highlight {
+    color: #00d2ff;
+    font-weight: 600;
+  }
+  
+  .description {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.85rem;
+    margin-top: 4px;
+    display: block;
+  }
 `;
 
 const RegisterButton = styled.button`
@@ -813,14 +858,17 @@ export default function Home() {
     onConfirm: () => {}
   });
   const [devnetIssue, setDevnetIssue] = useState(false);
+  const [makeOmnichain, setMakeOmnichain] = useState(false);
 
   const { showSuccess, showError, showWarning, NotificationContainer } = useNotification();
 
   const { isConnected, address, connect, disconnect, isLoading } = useWallet();
   const wagmiAccount = useAccount();
+  const chainId = useChainId();
   const { disconnect: wagmiDisconnect } = useWagmiDisconnect();
   const walletConnected = isConnected || wagmiAccount.isConnected;
   const currentAddress = address || wagmiAccount.address;
+  const currentChainId = chainId || 421614;
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Load user domains when wallet connects
@@ -902,15 +950,18 @@ export default function Home() {
     }
   };
 
-  // Register domain function
+  // Register domain function (with omnichain support)
   const registerDomain = async () => {
     if (!searchResult || !walletConnected) return;
+
+    const omnichainText = makeOmnichain ? ' as an omnichain domain' : '';
+    const omnichainNote = makeOmnichain ? ' This domain will be transferable across multiple blockchains via ZetaChain.' : '';
 
     // Show confirmation modal
     setConfirmModal({
       isOpen: true,
       title: 'Confirm Domain Registration',
-      message: `You are about to register "${searchResult.name}.zeta" for 0.001 ETH (1 year). This transaction cannot be undone.`,
+      message: `You are about to register "${searchResult.name}.zeta"${omnichainText} for 0.001 ETH (1 year).${omnichainNote} This transaction cannot be undone.`,
       onConfirm: async () => {
         setConfirmModal(prev => ({ ...prev, isOpen: false }));
         
@@ -923,18 +974,17 @@ export default function Home() {
             throw new Error('No wallet connected. Please connect your wallet to register domains.');
           }
           
-          console.log('🔗 Starting on-chain registration...');
+          console.log('🔗 Starting omnichain registration...');
+          console.log('🌐 Make omnichain:', makeOmnichain);
           console.log('💰 This will cost 0.001 ETH + gas fees');
           
-          const contract = getCreditContract(window.ethereum);
+          const contract = getOmnichainContract(window.ethereum, currentChainId);
           
-          transactionHash = await contract.registerDomain(searchResult.name);
+          transactionHash = await contract.registerDomain(searchResult.name, makeOmnichain);
           
           console.log('✅ Transaction submitted:', transactionHash);
-          
-          console.log('✅ On-chain registration successful:', transactionHash);
+          console.log('✅ Omnichain registration successful:', transactionHash);
 
-          // Only proceed if transaction was actually confirmed
           // Register in database
           const newDomain = await domainService.registerDomain(
             searchResult.name,
@@ -952,11 +1002,16 @@ export default function Home() {
           setUserDomains(prev => [...prev, displayDomain]);
           setSearchResult(null);
           setSearchQuery('');
+          setMakeOmnichain(false); // Reset omnichain option
           
-          // Success notification - only after confirmation
+          // Success notification
+          const successMessage = makeOmnichain 
+            ? `${searchResult.name}.zeta has been registered as an omnichain domain! You can now transfer it across multiple blockchains.`
+            : `${searchResult.name}.zeta has been registered successfully!`;
+            
           showSuccess(
             'Domain Registered Successfully!',
-            `${searchResult.name}.zeta has been confirmed on the blockchain and registered to your wallet.`
+            successMessage
           );
         } catch (error: unknown) {
           console.error('Domain registration failed:', error);
@@ -1272,13 +1327,26 @@ export default function Home() {
                         </PriceInfo>
                       </DomainInfo>
 
-                      {/* marketplace actions removed */}
+                      <OmnichainOption>
+                        <OmnichainCheckbox
+                          type="checkbox"
+                          id="omnichain-option"
+                          checked={makeOmnichain}
+                          onChange={(e) => setMakeOmnichain(e.target.checked)}
+                        />
+                        <OmnichainLabel htmlFor="omnichain-option">
+                          <span className="highlight">Make Omnichain Domain</span>
+                          <span className="description">
+                            Enable cross-chain transfers via ZetaChain. Transfer your domain between Arbitrum, Ethereum, BSC, and more!
+                          </span>
+                        </OmnichainLabel>
+                      </OmnichainOption>
 
                       <RegisterButton
                         onClick={registerDomain}
                         disabled={isRegistering || !walletConnected}
                       >
-                        {isRegistering ? 'Waiting for blockchain confirmation...' : (!walletConnected ? 'Connect to Register' : 'Register Domain')}
+                        {isRegistering ? 'Registering...' : (!walletConnected ? 'Connect to Register' : `Register ${makeOmnichain ? 'Omnichain ' : ''}Domain`)}
                       </RegisterButton>
                     </>
                   )}

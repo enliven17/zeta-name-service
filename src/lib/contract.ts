@@ -1,34 +1,70 @@
 import { ethers } from 'ethers'
+import { getContractAddresses, getChainConfig } from '../config/chains'
 
-// Zeta Name Service ABI
-const ZETA_NAME_SERVICE_ABI = [
-  "function register(string) payable",
-  "function isAvailable(string) view returns (bool)",
-  "function ownerOf(string) view returns (address)",
-  "function transfer(string, address)",
-  "function renew(string) payable",
-  "function REGISTRATION_PRICE() view returns (uint256)",
-  "function expiresAt(string) view returns (uint64)",
+// Omnichain Zeta Name Service ABI
+const OMNICHAIN_NAME_SERVICE_ABI = [
+  // Read functions
+  "function isAvailable(string calldata name) external view returns (bool)",
+  "function ownerOf(string calldata name) external view returns (address)",
+  "function expiresAt(string calldata name) external view returns (uint64)",
+  "function getDomainInfo(string calldata name) external view returns (address owner, uint64 expiresAt, uint256 sourceChainId, bool isOmnichain, bool isExpired)",
+  "function getSupportedChains() external view returns (uint256[] memory)",
+  "function getChainConfig(uint256 chainId) external view returns (tuple(bool isSupported, uint256 registrationPrice, uint256 transferFee, string rpcUrl, string explorerUrl))",
+  
+  // Write functions
+  "function register(string calldata name, bool makeOmnichain) external payable",
+  "function renew(string calldata name) external payable",
+  "function transfer(string calldata name, address to) external payable",
+  "function crossChainTransfer(string calldata name, address to, uint256 targetChainId) external payable",
+  
+  // Constants
+  "function BASE_REGISTRATION_PRICE() view returns (uint256)",
+  "function BASE_TRANSFER_FEE() view returns (uint256)",
 ]
 
-const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_ZETA_CONTRACT_ADDRESS || process.env.NEXT_PUBLIC_CREDIT_CONTRACT_ADDRESS || '0x0000000000000000000000000000000000000000'
+// Get contract address based on current chain
+const getContractAddress = (chainId: number): string => {
+  const addresses = getContractAddresses(chainId)
+  return addresses?.nameService || '0x0000000000000000000000000000000000000000'
+}
 
-console.log('🔗 Using Zeta contract address:', CONTRACT_ADDRESS);
 const DOMAIN_PRICE = ethers.parseEther('0.001') // 0.001 ETH
 const TRANSFER_FEE = ethers.parseEther('0.0001')  // 0.0001 ETH
 
-export class ZetaNameServiceContract {
+export class OmnichainZetaNameServiceContract {
   private contract: ethers.Contract
   private signer: unknown
   private provider: unknown
+  private chainId: number
 
-  constructor(provider: unknown) {
+  constructor(provider: unknown, chainId?: number) {
     this.provider = provider
     this.signer = provider.getSigner ? provider.getSigner() : provider
-    this.contract = new ethers.Contract(CONTRACT_ADDRESS, ZETA_NAME_SERVICE_ABI, provider)
+    
+    // Get chain ID from provider if not provided
+    if (!chainId) {
+      if (provider.getNetwork) {
+        provider.getNetwork().then((network: any) => {
+          this.chainId = Number(network.chainId)
+          this.initializeContract()
+        })
+      } else {
+        this.chainId = 421614 // Default to Arbitrum Sepolia
+        this.initializeContract()
+      }
+    } else {
+      this.chainId = chainId
+      this.initializeContract()
+    }
+  }
 
-    console.log('🔗 Contract initialized:', CONTRACT_ADDRESS);
-    console.log('🔗 Provider:', provider);
+  private initializeContract() {
+    const contractAddress = getContractAddress(this.chainId)
+    this.contract = new ethers.Contract(contractAddress, OMNICHAIN_NAME_SERVICE_ABI, this.provider)
+    
+    console.log('🔗 Omnichain contract initialized:', contractAddress);
+    console.log('🌐 Chain ID:', this.chainId);
+    console.log('🔗 Provider:', this.provider);
   }
 
   // Check if domain is available on-chain
@@ -62,10 +98,39 @@ export class ZetaNameServiceContract {
     }
   }
 
-  // Register domain
-  async registerDomain(domainName: string): Promise<string> {
+  // Get domain info (omnichain)
+  async getDomainInfo(domainName: string) {
     try {
-      console.log('🔗 Registering domain on-chain:', domainName);
+      const result = await this.contract.getDomainInfo(domainName.toLowerCase())
+      return {
+        owner: result[0],
+        expiresAt: result[1],
+        sourceChainId: Number(result[2]),
+        isOmnichain: result[3],
+        isExpired: result[4]
+      }
+    } catch (error) {
+      console.error('Error getting domain info:', error)
+      throw new Error('Failed to get domain info')
+    }
+  }
+
+  // Get supported chains
+  async getSupportedChains(): Promise<number[]> {
+    try {
+      const chains = await this.contract.getSupportedChains()
+      return chains.map((chain: bigint) => Number(chain))
+    } catch (error) {
+      console.error('Error getting supported chains:', error)
+      return []
+    }
+  }
+
+  // Register domain (with omnichain option)
+  async registerDomain(domainName: string, makeOmnichain: boolean = false): Promise<string> {
+    try {
+      console.log('🔗 Registering omnichain domain:', domainName);
+      console.log('🌐 Make omnichain:', makeOmnichain);
       console.log('💰 Payment amount:', ethers.formatEther(DOMAIN_PRICE), 'ETH');
 
       // Get signer
@@ -75,22 +140,29 @@ export class ZetaNameServiceContract {
       // Create contract instance with signer
       const contractWithSigner = this.contract.connect(signer);
 
-      // Skip contract price check for now - proceed directly to registration
-      console.log('💰 Using fixed domain price: 0.001 ETH');
+      // Get chain-specific pricing
+      const chainConfig = getChainConfig(this.chainId)
+      const price = chainConfig ? ethers.parseEther(chainConfig.registrationPrice) : DOMAIN_PRICE
 
-      // Try a direct contract call without complex error handling
-      console.log('📝 Attempting direct registerDomain call...');
-
-      // Gas limits tuned for Credit testnet
-      console.log('📝 Calling register with:', domainName.toLowerCase());
-      const tx = await contractWithSigner.register(domainName.toLowerCase(), {
-        value: DOMAIN_PRICE,
-        gasLimit: 300000,
+      console.log('💰 Using chain-specific price:', ethers.formatEther(price), 'ETH');
+      console.log('📝 Calling register with:', domainName.toLowerCase(), makeOmnichain);
+      
+      const tx = await contractWithSigner.register(domainName.toLowerCase(), makeOmnichain, {
+        value: price,
+        gasLimit: 500000, // Higher gas limit for omnichain
       });
 
       console.log('📤 Transaction sent:', tx.hash);
-      if (process.env.NEXT_PUBLIC_CREDIT_EXPLORER_URL) {
-        console.log('🔗 View on explorer:', process.env.NEXT_PUBLIC_CREDIT_EXPLORER_URL + '/tx/' + tx.hash);
+      
+      // Get explorer URL based on chain
+      const chainConfig2 = getChainConfig(this.chainId)
+      if (chainConfig2) {
+        const explorerUrl = this.chainId === 421614 
+          ? process.env.NEXT_PUBLIC_ARB_SEPOLIA_EXPLORER_URL 
+          : process.env.NEXT_PUBLIC_ZETACHAIN_TESTNET_EXPLORER_URL
+        if (explorerUrl) {
+          console.log('🔗 View on explorer:', `${explorerUrl}/tx/${tx.hash}`);
+        }
       }
 
       // Wait for confirmation
@@ -125,12 +197,27 @@ export class ZetaNameServiceContract {
     }
   }
 
-  // Transfer domain
+  // Transfer domain (same chain)
   async transferDomain(domainName: string, toAddress: string): Promise<string> {
     try {
+      console.log('🔄 Transferring domain:', domainName, 'to:', toAddress);
+      
       const signer = await this.signer;
-      const tx = await this.contract.connect(signer).transfer(domainName.toLowerCase(), toAddress, { value: TRANSFER_FEE })
+      const contractWithSigner = this.contract.connect(signer);
+      
+      // Get chain-specific transfer fee
+      const chainConfig = getChainConfig(this.chainId)
+      const fee = chainConfig ? ethers.parseEther(chainConfig.transferFee) : TRANSFER_FEE
+      
+      const tx = await contractWithSigner.transfer(domainName.toLowerCase(), toAddress, { 
+        value: fee,
+        gasLimit: 300000
+      })
+      
+      console.log('📤 Transfer transaction sent:', tx.hash);
       await tx.wait()
+      console.log('✅ Transfer confirmed');
+      
       return tx.hash
     } catch (error: any) {
       console.error('Error transferring domain:', error)
@@ -139,7 +226,45 @@ export class ZetaNameServiceContract {
         throw new Error('Transaction was rejected by user')
       }
 
-      throw new Error('Failed to transfer domain')
+      throw new Error('Failed to transfer domain: ' + error.message)
+    }
+  }
+
+  // Cross-chain transfer
+  async crossChainTransfer(domainName: string, toAddress: string, targetChainId: number): Promise<string> {
+    try {
+      console.log('🌐 Cross-chain transfer:', domainName, 'to chain:', targetChainId);
+      
+      const signer = await this.signer;
+      const contractWithSigner = this.contract.connect(signer);
+      
+      // Get chain-specific transfer fee
+      const chainConfig = getChainConfig(this.chainId)
+      const fee = chainConfig ? ethers.parseEther(chainConfig.transferFee) : TRANSFER_FEE
+      
+      const tx = await contractWithSigner.crossChainTransfer(
+        domainName.toLowerCase(), 
+        toAddress, 
+        targetChainId, 
+        { 
+          value: fee,
+          gasLimit: 800000 // Higher gas for cross-chain
+        }
+      )
+      
+      console.log('📤 Cross-chain transfer transaction sent:', tx.hash);
+      await tx.wait()
+      console.log('✅ Cross-chain transfer initiated');
+      
+      return tx.hash
+    } catch (error: any) {
+      console.error('Error in cross-chain transfer:', error)
+
+      if (error.code === 'ACTION_REJECTED') {
+        throw new Error('Transaction was rejected by user')
+      }
+
+      throw new Error('Failed to initiate cross-chain transfer: ' + error.message)
     }
   }
 
@@ -216,18 +341,23 @@ export class ZetaNameServiceContract {
   }
 }
 
-// Utility function to get contract instance
-export const getCreditContract = (provider: unknown): ZetaNameServiceContract => {
+// Utility function to get omnichain contract instance
+export const getOmnichainContract = (provider: unknown, chainId?: number): OmnichainZetaNameServiceContract => {
   try {
     // For modern providers (MetaMask, etc.)
     if (provider.request) {
       const ethersProvider = new ethers.BrowserProvider(provider)
-      return new ZetaNameServiceContract(ethersProvider)
+      return new OmnichainZetaNameServiceContract(ethersProvider, chainId)
     }
     // Fallback for other providers
-    return new ZetaNameServiceContract(provider)
+    return new OmnichainZetaNameServiceContract(provider, chainId)
   } catch (error) {
-    console.error('Error creating contract instance:', error)
-    throw new Error('Failed to create contract instance')
+    console.error('Error creating omnichain contract instance:', error)
+    throw new Error('Failed to create omnichain contract instance')
   }
+}
+
+// Legacy function for backward compatibility
+export const getCreditContract = (provider: unknown): OmnichainZetaNameServiceContract => {
+  return getOmnichainContract(provider)
 }

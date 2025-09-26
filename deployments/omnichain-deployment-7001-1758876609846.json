@@ -1,0 +1,45 @@
+{
+  "network": {
+    "name": "ZetaChain Athens Testnet",
+    "chainId": "7001",
+    "rpc": "N/A"
+  },
+  "contracts": {
+    "ZetaOmnichainNameService": "0x6F40A56250fbB57F5a17C815BE66A36804590669",
+    "ZetaOmnichainMarketplace": "0x95bc083e6911DeBc46b36cDCE8996fAEB28bf9A6"
+  },
+  "configuration": {
+    "registrationPrice": "0.001",
+    "transferFee": "0.0001",
+    "listingFee": "0.0001"
+  },
+  "deployer": "0x71197e7a1CA5A2cb2AD82432B924F69B1E3dB123",
+  "deployedAt": "2025-09-26T08:50:09.846Z",
+  "supportedChains": [
+    {
+      "chainId": 421614,
+      "name": "Arbitrum Sepolia",
+      "explorer": "https://sepolia.arbiscan.io"
+    },
+    {
+      "chainId": 7001,
+      "name": "ZetaChain Testnet",
+      "explorer": "https://athens.explorer.zetachain.com"
+    },
+    {
+      "chainId": 11155111,
+      "name": "Ethereum Sepolia",
+      "explorer": "https://sepolia.etherscan.io"
+    },
+    {
+      "chainId": 97,
+      "name": "BSC Testnet",
+      "explorer": "https://testnet.bscscan.com"
+    },
+    {
+      "chainId": 80001,
+      "name": "Polygon Mumbai",
+      "explorer": "https://mumbai.polygonscan.com"
+    }
+  ]
+}
