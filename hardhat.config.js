@@ -47,8 +47,8 @@ module.exports = {
       chainId: 11155111,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       timeout: 300000,
-      gasPrice: 20000000000, // 20 gwei
-      gas: 8000000,
+      gasPrice: 5000000000, // 5 gwei (reduced for deployment)
+      gas: 3000000, // Reduced gas limit
     },
 
     // BSC Testnet - Cross-chain support

@@ -248,9 +248,9 @@ export const contractAddresses = {
     omnichain: process.env.NEXT_PUBLIC_ZETACHAIN_NAME_SERVICE_ADDRESS || '0x6F40A56250fbB57F5a17C815BE66A36804590669',
   },
   [ethereumSepolia.id]: {
-    nameService: process.env.NEXT_PUBLIC_ETHEREUM_NAME_SERVICE_ADDRESS || '',
-    marketplace: process.env.NEXT_PUBLIC_ETHEREUM_MARKETPLACE_ADDRESS || '',
-    omnichain: process.env.NEXT_PUBLIC_ETHEREUM_NAME_SERVICE_ADDRESS || '',
+    nameService: process.env.NEXT_PUBLIC_ETHEREUM_NAME_SERVICE_ADDRESS || '0x19E88E3790A43721faD03CD5A68A100E18F40c4E',
+    marketplace: process.env.NEXT_PUBLIC_ETHEREUM_MARKETPLACE_ADDRESS || '0x7a9D78D1E5fe688F80D4C2c06Ca4C0407A967644',
+    omnichain: process.env.NEXT_PUBLIC_ETHEREUM_NAME_SERVICE_ADDRESS || '0x19E88E3790A43721faD03CD5A68A100E18F40c4E',
   },
   [bscTestnet.id]: {
     nameService: process.env.NEXT_PUBLIC_BSC_NAME_SERVICE_ADDRESS || '',

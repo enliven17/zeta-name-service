@@ -17,6 +17,11 @@ async function main() {
       chainId: 7001,
       nameService: "0x6F40A56250fbB57F5a17C815BE66A36804590669",
       marketplace: "0x95bc083e6911DeBc46b36cDCE8996fAEB28bf9A6"
+    },
+    ethereumSepolia: {
+      chainId: 11155111,
+      nameService: "0x19E88E3790A43721faD03CD5A68A100E18F40c4E",
+      marketplace: "0x7a9D78D1E5fe688F80D4C2c06Ca4C0407A967644"
     }
   };
 
@@ -34,6 +39,9 @@ async function main() {
   } else if (currentChainId === 7001) {
     currentContracts = contracts.zetaChain;
     console.log("🔗 Testing on ZetaChain Testnet");
+  } else if (currentChainId === 11155111) {
+    currentContracts = contracts.ethereumSepolia;
+    console.log("🔗 Testing on Ethereum Sepolia");
   } else {
     console.log("❌ Unsupported network for testing");
     return;
@@ -66,9 +74,17 @@ async function main() {
     if (isAvailable) {
       // Test 3: Register omnichain domain
       console.log("\n📋 Test 3: Registering omnichain domain...");
-      const registrationPrice = ethers.parseEther("0.001");
+      
+      // Use chain-specific pricing
+      let registrationPrice;
+      if (currentChainId === 11155111) {
+        registrationPrice = ethers.parseEther("0.002"); // Ethereum Sepolia
+      } else {
+        registrationPrice = ethers.parseEther("0.001"); // Other chains
+      }
       
       console.log(`Registering "${testDomain}.zeta" as omnichain domain...`);
+      console.log(`Registration price: ${ethers.formatEther(registrationPrice)} ETH`);
       const registerTx = await nameService.register(testDomain, true, {
         value: registrationPrice
       });
@@ -91,8 +107,17 @@ async function main() {
 
       // Test 5: Cross-chain transfer simulation
       console.log("\n📋 Test 5: Cross-chain transfer simulation...");
-      const targetChainId = currentChainId === 421614 ? 7001 : 421614;
-      const targetChainName = targetChainId === 421614 ? "Arbitrum Sepolia" : "ZetaChain Testnet";
+      let targetChainId, targetChainName;
+      if (currentChainId === 421614) {
+        targetChainId = 7001;
+        targetChainName = "ZetaChain Testnet";
+      } else if (currentChainId === 7001) {
+        targetChainId = 421614;
+        targetChainName = "Arbitrum Sepolia";
+      } else if (currentChainId === 11155111) {
+        targetChainId = 7001;
+        targetChainName = "ZetaChain Testnet";
+      }
       
       console.log(`Simulating cross-chain transfer to ${targetChainName} (${targetChainId})`);
       

@@ -11,19 +11,19 @@ const NetworkContainer = styled.div`
   display: inline-block;
 `
 
-const NetworkButton = styled.button<{ isWrongNetwork?: boolean }>`
+const NetworkButton = styled.button<{ $isWrongNetwork?: boolean }>`
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 16px;
-  background: ${props => props.isWrongNetwork 
+  background: ${props => props.$isWrongNetwork 
     ? 'rgba(239, 68, 68, 0.1)' 
     : 'rgba(255, 255, 255, 0.1)'};
-  border: 2px solid ${props => props.isWrongNetwork 
+  border: 2px solid ${props => props.$isWrongNetwork 
     ? 'rgba(239, 68, 68, 0.3)' 
     : 'rgba(255, 255, 255, 0.2)'};
   border-radius: 20px;
-  color: ${props => props.isWrongNetwork ? '#ef4444' : 'white'};
+  color: ${props => props.$isWrongNetwork ? '#ef4444' : 'white'};
   font-size: 1.1rem;
   font-weight: 600;
   cursor: pointer;
@@ -32,16 +32,16 @@ const NetworkButton = styled.button<{ isWrongNetwork?: boolean }>`
   height: 56px;
   
   &:hover {
-    background: ${props => props.isWrongNetwork 
+    background: ${props => props.$isWrongNetwork 
       ? 'rgba(239, 68, 68, 0.15)' 
       : 'rgba(255, 255, 255, 0.15)'};
-    border-color: ${props => props.isWrongNetwork 
+    border-color: ${props => props.$isWrongNetwork 
       ? 'rgba(239, 68, 68, 0.5)' 
       : 'rgba(255, 255, 255, 0.3)'};
   }
 `
 
-const NetworkDropdown = styled.div<{ isOpen: boolean }>`
+const NetworkDropdown = styled.div<{ $isOpen: boolean }>`
   position: absolute;
   bottom: 100%;
   left: 0;
@@ -52,14 +52,14 @@ const NetworkDropdown = styled.div<{ isOpen: boolean }>`
   border-radius: 12px;
   margin-bottom: 8px;
   z-index: 1000;
-  opacity: ${props => props.isOpen ? 1 : 0};
-  visibility: ${props => props.isOpen ? 'visible' : 'hidden'};
-  transform: ${props => props.isOpen ? 'translateY(0)' : 'translateY(10px)'};
+  opacity: ${props => props.$isOpen ? 1 : 0};
+  visibility: ${props => props.$isOpen ? 'visible' : 'hidden'};
+  transform: ${props => props.$isOpen ? 'translateY(0)' : 'translateY(10px)'};
   transition: all 0.3s ease;
   box-shadow: 0 -20px 40px rgba(0, 0, 0, 0.3);
 `
 
-const NetworkOption = styled.button<{ isActive?: boolean; isDeployed?: boolean }>`
+const NetworkOption = styled.button<{ $isActive?: boolean; $isDeployed?: boolean }>`
   width: 100%;
   display: flex;
   align-items: center;
@@ -67,15 +67,15 @@ const NetworkOption = styled.button<{ isActive?: boolean; isDeployed?: boolean }
   padding: 12px 16px;
   background: transparent;
   border: none;
-  color: ${props => props.isActive ? '#00d2ff' : 'white'};
+  color: ${props => props.$isActive ? '#00d2ff' : 'white'};
   font-size: 0.9rem;
   font-weight: 500;
-  cursor: ${props => props.isDeployed ? 'pointer' : 'not-allowed'};
+  cursor: ${props => props.$isDeployed ? 'pointer' : 'not-allowed'};
   transition: all 0.3s ease;
-  opacity: ${props => props.isDeployed ? 1 : 0.5};
+  opacity: ${props => props.$isDeployed ? 1 : 0.5};
   
   &:hover {
-    background: ${props => props.isDeployed ? 'rgba(255, 255, 255, 0.1)' : 'transparent'};
+    background: ${props => props.$isDeployed ? 'rgba(255, 255, 255, 0.1)' : 'transparent'};
   }
   
   &:first-child {
@@ -133,6 +133,7 @@ export default function NetworkSwitcher({ className, style }: NetworkSwitcherPro
     if (isPending) return
     
     const addresses = getContractAddresses(targetChainId)
+    
     if (!addresses?.nameService || addresses.nameService === '') {
       return // Don't switch to undeployed networks
     }
@@ -157,7 +158,7 @@ export default function NetworkSwitcher({ className, style }: NetworkSwitcherPro
   return (
     <NetworkContainer className={className} style={style}>
       <NetworkButton 
-        isWrongNetwork={isWrongNetwork}
+        $isWrongNetwork={isWrongNetwork}
         onClick={() => setIsOpen(!isOpen)}
       >
         {isWrongNetwork ? (
@@ -179,7 +180,7 @@ export default function NetworkSwitcher({ className, style }: NetworkSwitcherPro
         />
       </NetworkButton>
 
-      <NetworkDropdown isOpen={isOpen}>
+      <NetworkDropdown $isOpen={isOpen}>
         {supportedChains.map((chain) => {
           const chainConfig = getChainConfig(chain.id)
           const isActive = chainId === chain.id
@@ -188,8 +189,8 @@ export default function NetworkSwitcher({ className, style }: NetworkSwitcherPro
           return (
             <NetworkOption
               key={chain.id}
-              isActive={isActive}
-              isDeployed={isDeployed}
+              $isActive={isActive}
+              $isDeployed={isDeployed}
               onClick={() => isDeployed && handleNetworkSwitch(chain.id)}
             >
               <NetworkInfo>
