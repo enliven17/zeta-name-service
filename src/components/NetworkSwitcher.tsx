@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import styled from 'styled-components'
 import { FaChevronDown, FaCheck, FaExclamationTriangle, FaGlobe } from 'react-icons/fa'
 import { useAccount, useChainId, useSwitchChain } from 'wagmi'
@@ -129,20 +129,45 @@ export default function NetworkSwitcher({ className, style }: NetworkSwitcherPro
   
   const isWrongNetwork = isConnected && !currentChain
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element
+      if (!target.closest('[data-network-switcher]')) {
+        setIsOpen(false)
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [isOpen])
+
   const handleNetworkSwitch = async (targetChainId: number) => {
     if (isPending) return
     
     const addresses = getContractAddresses(targetChainId)
     
     if (!addresses?.nameService || addresses.nameService === '') {
+      console.warn('Contract not deployed on this network')
       return // Don't switch to undeployed networks
     }
 
     try {
       await switchChain({ chainId: targetChainId })
       setIsOpen(false)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to switch network:', error)
+      
+      // Handle user rejection silently
+      if (error?.code === 4001 || error?.message?.includes('User rejected')) {
+        console.log('User rejected network switch')
+        return
+      }
+      
+      // Show error for other cases
+      alert(`Network switch failed: ${error?.message || 'Unknown error'}`)
     }
   }
 
@@ -151,12 +176,12 @@ export default function NetworkSwitcher({ className, style }: NetworkSwitcherPro
     return !!(addresses?.nameService && addresses.nameService !== '')
   }
 
-  if (!isConnected) {
+  if (!isConnected || !chainId) {
     return null
   }
 
   return (
-    <NetworkContainer className={className} style={style}>
+    <NetworkContainer className={className} style={style} data-network-switcher>
       <NetworkButton 
         $isWrongNetwork={isWrongNetwork}
         onClick={() => setIsOpen(!isOpen)}
@@ -216,14 +241,3 @@ export default function NetworkSwitcher({ className, style }: NetworkSwitcherPro
   )
 }
 
-// Click outside to close
-if (typeof window !== 'undefined') {
-  document.addEventListener('click', (e) => {
-    const networkContainers = document.querySelectorAll('[data-network-switcher]')
-    networkContainers.forEach(container => {
-      if (!container.contains(e.target as Node)) {
-        // Close dropdown logic would go here if we had a global state
-      }
-    })
-  })
-}

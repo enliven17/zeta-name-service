@@ -409,12 +409,12 @@ export const getCrossChainRoute = (fromChainId: number, toChainId: number) => {
 
 export const getExplorerUrl = (chainId: number, txHash: string) => {
   const chain = supportedChains.find(c => c.id === chainId)
-  if (!chain) return ''
+  if (!chain || !chain.blockExplorers?.default?.url) return ''
   return `${chain.blockExplorers.default.url}/tx/${txHash}`
 }
 
 export const getAddressUrl = (chainId: number, address: string) => {
   const chain = supportedChains.find(c => c.id === chainId)
-  if (!chain) return ''
+  if (!chain || !chain.blockExplorers?.default?.url) return ''
   return `${chain.blockExplorers.default.url}/address/${address}`
 }

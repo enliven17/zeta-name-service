@@ -6,6 +6,7 @@ import { FaEthereum, FaClock, FaGavel, FaTag, FaSearch, FaChevronUp, FaChevronDo
 import { marketplaceService, MarketplaceListing } from '@/lib/marketplace';
 import { getOmnichainContract } from '@/lib/contract';
 import { useAccount, useChainId } from 'wagmi';
+import { getChainConfig } from '@/config/chains';
 
 const MarketplaceContainer = styled.div`
   width: 100%;
@@ -160,6 +161,19 @@ const OmnichainBadge = styled.div`
   }
 `;
 
+const NetworkBadge = styled.div<{ color: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  background: ${props => `linear-gradient(135deg, ${props.color}20 0%, ${props.color}10 100%)`};
+  border: 1px solid ${props => `${props.color}40`};
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: ${props => props.color};
+`;
+
 const DomainNameWithBadge = styled.div`
   display: flex;
   flex-direction: column;
@@ -167,6 +181,13 @@ const DomainNameWithBadge = styled.div`
   flex: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
+`;
+
+const BadgeContainer = styled.div`
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
 `;
 
 const ListingInfo = styled.div`
@@ -459,11 +480,34 @@ export function MarketplaceListings({ onBuyDomain, onMakeOffer }: MarketplaceLis
                                             <FaEthereum size={18} />
                                             {listing.domain?.name ? `${listing.domain.name}.zeta` : 'Unknown Domain'}
                                         </DomainName>
-                                        {listing.domain?.name && domainInfoCache[`${listing.domain.name}.zeta`]?.isOmnichain && (
-                                            <OmnichainBadge>
-                                                <FaGlobe size={8} />
-                                                Omnichain
-                                            </OmnichainBadge>
+                                        {listing.domain?.name && (
+                                          <BadgeContainer>
+                                            {(() => {
+                                              const domainInfo = domainInfoCache[`${listing.domain.name}.zeta`];
+                                              if (domainInfo?.isOmnichain) {
+                                                return (
+                                                  <OmnichainBadge>
+                                                    <FaGlobe size={8} />
+                                                    Omnichain
+                                                  </OmnichainBadge>
+                                                );
+                                              } else if (domainInfo?.sourceChainId) {
+                                                const chainConfig = getChainConfig(domainInfo.sourceChainId);
+                                                return chainConfig ? (
+                                                  <NetworkBadge color={chainConfig.color}>
+                                                    <div style={{ 
+                                                      width: '6px', 
+                                                      height: '6px', 
+                                                      borderRadius: '50%', 
+                                                      backgroundColor: chainConfig.color 
+                                                    }} />
+                                                    {chainConfig.shortName}
+                                                  </NetworkBadge>
+                                                ) : null;
+                                              }
+                                              return null;
+                                            })()}
+                                          </BadgeContainer>
                                         )}
                                     </DomainNameWithBadge>
 

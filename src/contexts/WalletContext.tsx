@@ -5,12 +5,12 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 // import { EthereumProvider } from '@walletconnect/ethereum-provider';
 // RainbowKit will be used for connection UI; this context remains for app state
 
-// Umi Devnet network configuration
-const UMI_DEVNET_CONFIG = {
-  chainId: '0xA455', // 42069 in hex
-  chainName: 'Umi Devnet',
-  rpcUrls: ['https://devnet.uminetwork.com'],
-  blockExplorerUrls: ['https://devnet.explorer.moved.network'],
+// Arbitrum Sepolia network configuration (target network)
+const ARB_SEPOLIA_CONFIG = {
+  chainId: '0x66EED', // 421614 in hex
+  chainName: 'Arbitrum Sepolia',
+  rpcUrls: [process.env.NEXT_PUBLIC_ARB_SEPOLIA_RPC_URL || 'https://sepolia-rollup.arbitrum.io/rpc'],
+  blockExplorerUrls: [process.env.NEXT_PUBLIC_ARB_SEPOLIA_EXPLORER_URL || 'https://sepolia.arbiscan.io'],
   nativeCurrency: {
     name: 'ETH',
     symbol: 'ETH',
@@ -18,18 +18,7 @@ const UMI_DEVNET_CONFIG = {
   },
 };
 
-// Alternative Umi Devnet configuration (if the above doesn't work)
-const UMI_DEVNET_CONFIG_ALT = {
-  chainId: '0xA455', // 42069 in hex
-  chainName: 'Umi Devnet',
-  rpcUrls: ['https://rpc.devnet.uminetwork.com'],
-  blockExplorerUrls: ['https://explorer.devnet.uminetwork.com'],
-  nativeCurrency: {
-    name: 'ETH',
-    symbol: 'ETH',
-    decimals: 18,
-  },
-};
+// Unused alt config removed
 
 // Common testnet configurations to try
 const TESTNET_CONFIGS = [
@@ -94,26 +83,15 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
   const [address, setAddress] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [walletType, setWalletType] = useState<'metamask' | 'okx' | 'walletconnect' | null>(null);
-  const [isUmiNetwork, setIsUmiNetwork] = useState(false);
+  const [isUmiNetwork, setIsUmiNetwork] = useState(false); // kept name for compatibility; now means Arbitrum Sepolia
   const [walletConnectProvider, setWalletConnectProvider] = useState<any>(null);
 
   // WalletConnect disabled – use RainbowKit only
   useEffect(() => {}, []);
 
-  // Check if wallet is already connected on mount
-  useEffect(() => {
-    const savedAddress = localStorage.getItem('walletAddress');
-    const savedWalletType = localStorage.getItem('walletType') as 'metamask' | 'okx' | 'walletconnect';
-    
-    if (savedAddress && savedWalletType) {
-      setAddress(savedAddress);
-      setWalletType(savedWalletType);
-      setIsConnected(true);
-      checkNetwork();
-    }
-  }, []);
+  // Auto-connect disabled - user must manually connect
 
-  // Check if connected to Umi Devnet
+  // Check if connected to Arbitrum Sepolia
   const checkNetwork = async () => {
     let provider = window.ethereum;
     
@@ -130,8 +108,8 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     
     try {
       const chainId = await provider.request({ method: 'eth_chainId' });
-      const isUmi = chainId.toLowerCase() === UMI_DEVNET_CONFIG.chainId.toLowerCase();
-      console.log('Network check - Current chain ID:', chainId, 'Expected:', UMI_DEVNET_CONFIG.chainId, 'Is Umi:', isUmi);
+      const isUmi = chainId.toLowerCase() === ARB_SEPOLIA_CONFIG.chainId.toLowerCase();
+      console.log('Network check - Current chain ID:', chainId, 'Expected:', ARB_SEPOLIA_CONFIG.chainId, 'Is ArbitrumSepolia:', isUmi);
       
       // Force state update
       setIsUmiNetwork(isUmi);
@@ -149,7 +127,7 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     }
   };
 
-  // Switch to Umi Devnet
+  // Switch to Arbitrum Sepolia
   const switchToUmiNetwork = async () => {
     let provider = window.ethereum;
     
@@ -163,16 +141,16 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     }
 
     try {
-      console.log('Attempting to switch to Umi Devnet...');
-      console.log('Target chain ID:', UMI_DEVNET_CONFIG.chainId);
+      console.log('Attempting to switch to Arbitrum Sepolia...');
+      console.log('Target chain ID:', ARB_SEPOLIA_CONFIG.chainId);
       
       // Check current chain first
       const currentChainId = await provider.request({ method: 'eth_chainId' });
       console.log('Current chain ID before switch:', currentChainId);
       
       // If already on the correct chain, just update state
-      if (currentChainId.toLowerCase() === UMI_DEVNET_CONFIG.chainId.toLowerCase()) {
-        console.log('Already on Umi Devnet');
+      if (currentChainId.toLowerCase() === ARB_SEPOLIA_CONFIG.chainId.toLowerCase()) {
+        console.log('Already on Arbitrum Sepolia');
         setIsUmiNetwork(true);
         return;
       }
@@ -180,7 +158,7 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
       // First try to switch to the chain
       await provider.request({
         method: 'wallet_switchEthereumChain',
-        params: [{ chainId: UMI_DEVNET_CONFIG.chainId }],
+        params: [{ chainId: ARB_SEPOLIA_CONFIG.chainId }],
       });
       
       // Wait a bit for the switch to complete
@@ -190,38 +168,38 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
       const newChainId = await provider.request({ method: 'eth_chainId' });
       console.log('Chain ID after switch attempt:', newChainId);
       
-      if (newChainId.toLowerCase() === UMI_DEVNET_CONFIG.chainId.toLowerCase()) {
-        console.log('Successfully switched to Umi Devnet');
+      if (newChainId.toLowerCase() === ARB_SEPOLIA_CONFIG.chainId.toLowerCase()) {
+        console.log('Successfully switched to Arbitrum Sepolia');
         setIsUmiNetwork(true);
       } else {
         console.log('Switch failed - chain ID mismatch');
-        console.log('Expected:', UMI_DEVNET_CONFIG.chainId, 'Got:', newChainId);
-        throw new Error('Failed to switch to Umi Devnet - chain ID mismatch');
+        console.log('Expected:', ARB_SEPOLIA_CONFIG.chainId, 'Got:', newChainId);
+        throw new Error('Failed to switch to Arbitrum Sepolia - chain ID mismatch');
       }
       
     } catch (switchError: any) {
       console.log('Switch error:', switchError);
       
       // Always try to add the chain first, regardless of error code
-      console.log('Attempting to add Umi Devnet to wallet...');
+      console.log('Attempting to add Arbitrum Sepolia to wallet...');
       
       try {
         // Add the chain
         await provider.request({
           method: 'wallet_addEthereumChain',
-          params: [UMI_DEVNET_CONFIG],
+          params: [ARB_SEPOLIA_CONFIG],
         });
         
-        console.log('Successfully added Umi Devnet to wallet');
+        console.log('Successfully added Arbitrum Sepolia to wallet');
         
         // Wait for the addition to complete
         await new Promise(resolve => setTimeout(resolve, 3000));
         
         // Now try to switch to the newly added chain
-        console.log('Attempting to switch to newly added Umi Devnet...');
+        console.log('Attempting to switch to newly added Arbitrum Sepolia...');
         await provider.request({
           method: 'wallet_switchEthereumChain',
-          params: [{ chainId: UMI_DEVNET_CONFIG.chainId }],
+          params: [{ chainId: ARB_SEPOLIA_CONFIG.chainId }],
         });
         
         // Wait for the switch to complete
@@ -231,40 +209,40 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
         const chainId = await provider.request({ method: 'eth_chainId' });
         console.log('Chain ID after adding and switching:', chainId);
         
-        if (chainId.toLowerCase() === UMI_DEVNET_CONFIG.chainId.toLowerCase()) {
-          console.log('Successfully added and switched to Umi Devnet');
+        if (chainId.toLowerCase() === ARB_SEPOLIA_CONFIG.chainId.toLowerCase()) {
+          console.log('Successfully added and switched to Arbitrum Sepolia');
           setIsUmiNetwork(true);
         } else {
           console.log('Added but switch failed - chain ID mismatch');
-          console.log('Expected:', UMI_DEVNET_CONFIG.chainId, 'Got:', chainId);
+          console.log('Expected:', ARB_SEPOLIA_CONFIG.chainId, 'Got:', chainId);
           
           // Try one more time with a different approach
           console.log('Trying alternative switch method...');
           try {
             await provider.request({
               method: 'wallet_switchEthereumChain',
-              params: [{ chainId: UMI_DEVNET_CONFIG.chainId }],
+              params: [{ chainId: ARB_SEPOLIA_CONFIG.chainId }],
             });
             
             await new Promise(resolve => setTimeout(resolve, 2000));
             const finalChainId = await provider.request({ method: 'eth_chainId' });
             console.log('Final chain ID after retry:', finalChainId);
             
-            if (finalChainId.toLowerCase() === UMI_DEVNET_CONFIG.chainId.toLowerCase()) {
-              console.log('Successfully switched to Umi Devnet on retry');
+            if (finalChainId.toLowerCase() === ARB_SEPOLIA_CONFIG.chainId.toLowerCase()) {
+              console.log('Successfully switched to Arbitrum Sepolia on retry');
               setIsUmiNetwork(true);
             } else {
-              throw new Error('Failed to switch to Umi Devnet after multiple attempts');
+              throw new Error('Failed to switch to Arbitrum Sepolia after multiple attempts');
             }
           } catch (retryError) {
             console.error('Retry failed:', retryError);
-            throw new Error('Umi Devnet eklendikten sonra geçiş yapılamadı. Lütfen cüzdanınızdan manuel olarak Umi Devnet\'e geçin.');
+            throw new Error('Arbitrum Sepolia eklendikten sonra geçiş yapılamadı. Lütfen cüzdanınızdan manuel olarak Arbitrum Sepolia\'ya geçin.');
           }
         }
         
       } catch (addError) {
-        console.error('Error adding Umi Devnet:', addError);
-        throw new Error('Umi Devnet cüzdanınıza eklenemedi. Lütfen manuel olarak aşağıdaki bilgilerle ekleyin:\n\nAğ Adı: Umi Devnet\nRPC URL: https://rpc.devnet.uminetwork.com\nChain ID: 42069\nPara Birimi: ETH\nBlock Explorer: https://explorer.devnet.uminetwork.com');
+        console.error('Error adding Arbitrum Sepolia:', addError);
+        throw new Error('Arbitrum Sepolia cüzdanınıza eklenemedi. Lütfen manuel olarak aşağıdaki bilgilerle ekleyin:\n\nAğ Adı: Arbitrum Sepolia\nRPC URL: https://sepolia-rollup.arbitrum.io/rpc\nChain ID: 421614\nPara Birimi: ETH\nBlock Explorer: https://sepolia.arbiscan.io');
       }
     }
   };
@@ -324,8 +302,21 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
           throw wcError; // Re-throw other errors
         }
       } else {
-        // For MetaMask and OKX, use request method
-        accounts = await provider.request({ method: 'eth_requestAccounts' });
+        // For MetaMask and OKX, check for pending requests first
+        try {
+          // Check if already connected
+          const existingAccounts = await provider.request({ method: 'eth_accounts' });
+          if (existingAccounts && existingAccounts.length > 0) {
+            accounts = existingAccounts;
+          } else {
+            accounts = await provider.request({ method: 'eth_requestAccounts' });
+          }
+        } catch (requestError: any) {
+          if (requestError.code === -32002) {
+            throw new Error('Cüzdan bağlantı isteği zaten beklemede. Lütfen cüzdanınızı kontrol edin.');
+          }
+          throw requestError;
+        }
       }
       
       if (accounts.length === 0) {
@@ -339,8 +330,8 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
       if (walletType === 'walletconnect') {
         try {
           const chainId = await provider.request({ method: 'eth_chainId' });
-          isUmi = chainId.toLowerCase() === UMI_DEVNET_CONFIG.chainId.toLowerCase();
-          console.log('WalletConnect network check - Chain ID:', chainId, 'Is Umi:', isUmi);
+          isUmi = chainId.toLowerCase() === ARB_SEPOLIA_CONFIG.chainId.toLowerCase();
+          console.log('WalletConnect network check - Chain ID:', chainId, 'Is ArbitrumSepolia:', isUmi);
         } catch (error) {
           console.error('Error checking WalletConnect network:', error);
         }
@@ -350,15 +341,15 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
       }
       
       if (false) {
-        // Try to switch to Umi Devnet - this is required
+        // Optionally switch to Arbitrum Sepolia
         try {
-          console.log('Not on Umi Devnet, attempting to switch...');
+          console.log('Attempting to switch to Arbitrum Sepolia...');
           await switchToUmiNetwork();
-          console.log('Successfully switched to Umi Devnet');
+          console.log('Successfully switched to Arbitrum Sepolia');
         } catch (error) {
-          console.error('Failed to switch to Umi Devnet:', error);
-          // Disconnect if we can't switch to Umi Devnet
-          throw new Error('Bu uygulama sadece Umi Devnet üzerinde çalışır. Lütfen cüzdanınızı Umi Devnet\'e geçirin.');
+          console.error('Failed to switch to Arbitrum Sepolia:', error);
+          // Optional: enforce network
+          // throw new Error('Bu uygulama Arbitrum Sepolia üzerinde çalışır. Lütfen cüzdanınızı Arbitrum Sepolia\'ya geçirin.');
         }
       }
 
@@ -397,13 +388,18 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
   const disconnect = () => {
     // Disconnect WalletConnect if it's the current wallet
     if (walletType === 'walletconnect' && walletConnectProvider) {
-      walletConnectProvider.disconnect();
+      try {
+        walletConnectProvider.disconnect();
+      } catch (e) {
+        console.error('WalletConnect disconnect error:', e);
+      }
     }
     
     setIsConnected(false);
     setAddress(null);
     setWalletType(null);
     setIsUmiNetwork(false);
+    setWalletConnectProvider(null);
     
     // Clear localStorage
     localStorage.removeItem('walletAddress');
@@ -425,12 +421,12 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
       };
 
       const handleChainChanged = (chainId: string) => {
-        const isUmi = chainId.toLowerCase() === UMI_DEVNET_CONFIG.chainId.toLowerCase();
-        console.log('Chain changed - New chain ID:', chainId, 'Is Umi:', isUmi);
+        const isUmi = chainId.toLowerCase() === ARB_SEPOLIA_CONFIG.chainId.toLowerCase();
+        console.log('Chain changed - New chain ID:', chainId, 'Is ArbitrumSepolia:', isUmi);
         setIsUmiNetwork(isUmi);
         
         if (!isUmi && isConnected) {
-          console.warn('Please switch to Umi Devnet to use this application.');
+          console.warn('Please switch to Arbitrum Sepolia to use this application.');
           // Optionally disconnect user if they switch away from Umi Devnet
           // disconnect();
         }

@@ -25,11 +25,31 @@ const config = createConfig({
   chains: supportedChains as readonly [Chain, ...Chain[]],
   connectors,
   transports: {
-    [arbitrumSepolia.id]: http(ARB_SEPOLIA_RPC_URL),
-    [zetaChainTestnet.id]: http(ZETACHAIN_TESTNET_RPC_URL),
-    [ethereumSepolia.id]: http(ETHEREUM_SEPOLIA_RPC_URL),
-    [bscTestnet.id]: http(BSC_TESTNET_RPC_URL),
-    [polygonMumbai.id]: http(POLYGON_MUMBAI_RPC_URL),
+    [arbitrumSepolia.id]: http(ARB_SEPOLIA_RPC_URL, {
+      batch: true,
+      retryCount: 3,
+      retryDelay: 1000,
+    }),
+    [zetaChainTestnet.id]: http(ZETACHAIN_TESTNET_RPC_URL, {
+      batch: true,
+      retryCount: 3,
+      retryDelay: 1000,
+    }),
+    [ethereumSepolia.id]: http(ETHEREUM_SEPOLIA_RPC_URL, {
+      batch: true,
+      retryCount: 3,
+      retryDelay: 1000,
+    }),
+    [bscTestnet.id]: http(BSC_TESTNET_RPC_URL, {
+      batch: true,
+      retryCount: 3,
+      retryDelay: 1000,
+    }),
+    [polygonMumbai.id]: http(POLYGON_MUMBAI_RPC_URL, {
+      batch: true,
+      retryCount: 3,
+      retryDelay: 1000,
+    }),
   },
   ssr: false,
   multiInjectedProviderDiscovery: false,
@@ -39,7 +59,9 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
-      cacheTime: 1000 * 60 * 10, // 10 minutes
+      gcTime: 1000 * 60 * 10, // 10 minutes (cacheTime is deprecated, use gcTime)
+      retry: 3,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     },
   },
 });
@@ -55,13 +77,12 @@ const customTheme = darkTheme({
 
 export function RainbowProvider({ children }: { children: React.ReactNode }) {
   return (
-    <WagmiProvider config={config}>
+    <WagmiProvider config={config} reconnectOnMount={false}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider 
           chains={supportedChains as readonly [Chain, ...Chain[]]}
           theme={customTheme}
           modalSize="wide"
-          initialChain={arbitrumSepolia}
           showRecentTransactions={true}
           coolMode={true}
         >

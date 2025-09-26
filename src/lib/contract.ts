@@ -102,6 +102,12 @@ export class OmnichainZetaNameServiceContract {
   async getDomainInfo(domainName: string) {
     try {
       const result = await this.contract.getDomainInfo(domainName.toLowerCase())
+      
+      // Check if result is valid
+      if (!result || result.length < 5) {
+        throw new Error('Invalid contract response')
+      }
+      
       return {
         owner: result[0],
         expiresAt: result[1],
@@ -109,8 +115,14 @@ export class OmnichainZetaNameServiceContract {
         isOmnichain: result[3],
         isExpired: result[4]
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error getting domain info:', error)
+      
+      // Handle specific error cases
+      if (error?.code === 'BAD_DATA' || error?.message?.includes('could not decode result data')) {
+        throw new Error('Domain not found or invalid')
+      }
+      
       throw new Error('Failed to get domain info')
     }
   }

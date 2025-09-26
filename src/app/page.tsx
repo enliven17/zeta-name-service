@@ -16,7 +16,7 @@ import { useNotification } from '@/components/Notification';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount, useDisconnect as useWagmiDisconnect } from 'wagmi';
-import { supportedChains } from '@/config/chains';
+import { supportedChains, getChainConfig } from '@/config/chains';
 import NetworkSwitcher from '@/components/NetworkSwitcher';
 import NetworkInfo from '@/components/NetworkInfo';
 
@@ -854,6 +854,19 @@ const BadgeContainer = styled.div`
   flex-wrap: wrap;
 `;
 
+const NetworkBadge = styled.div<{ color: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: ${props => `linear-gradient(135deg, ${props.color}20 0%, ${props.color}10 100%)`};
+  border: 1px solid ${props => `${props.color}40`};
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: ${props => props.color};
+`;
+
 const ErrorMessage = styled.div`
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.3);
@@ -936,6 +949,8 @@ export default function Home() {
   const currentAddress = address || wagmiAccount.address;
   const currentChainId = chainId || 421614;
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+
   
   // Check if user is on a supported network
   const isWrongNetwork = walletConnected && !supportedChains.find(chain => chain.id === currentChainId);
@@ -1101,7 +1116,9 @@ export default function Home() {
 
     try {
       const contract = getOmnichainContract(window.ethereum, currentChainId);
-      const info = await contract.getDomainInfo(domainName.replace('.zeta', ''));
+      const cleanName = domainName.replace('.zeta', '');
+      
+      const info = await contract.getDomainInfo(cleanName);
       
       // Cache the result
       setDomainInfoCache(prev => ({
@@ -1110,9 +1127,23 @@ export default function Home() {
       }));
       
       return info;
-    } catch (error) {
-      console.error('Failed to load domain info for', domainName, error);
-      return null;
+    } catch (error: any) {
+      // For domains that don't exist on-chain, create a default info
+      const defaultInfo = {
+        owner: currentAddress || '0x0000000000000000000000000000000000000000',
+        expiresAt: Date.now() + 365 * 24 * 60 * 60 * 1000,
+        sourceChainId: currentChainId,
+        isOmnichain: false,
+        isExpired: false
+      };
+      
+      // Cache the default result
+      setDomainInfoCache(prev => ({
+        ...prev,
+        [domainName]: defaultInfo
+      }));
+      
+      return defaultInfo;
     }
   };
 
@@ -1133,7 +1164,29 @@ export default function Home() {
 
       // Load domain info for each domain in background
       displayDomains.forEach(domain => {
-        loadDomainInfo(domain.name);
+        loadDomainInfo(domain.name); // domain.name already includes .zeta
+      });
+
+      // For domains without blockchain info, set default network info based on registration date
+      displayDomains.forEach(domain => {
+        if (!domainInfoCache[domain.name]) {
+          // Domains registered before a certain date are likely on Arbitrum Sepolia
+          const registrationDate = new Date(domain.registration_date);
+          const cutoffDate = new Date('2024-01-01'); // Adjust this date as needed
+          
+          const defaultChainId = registrationDate < cutoffDate ? 421614 : currentChainId; // Arbitrum Sepolia for old domains
+          
+          setDomainInfoCache(prev => ({
+            ...prev,
+            [domain.name]: {
+              owner: domain.owner_address,
+              expiresAt: new Date(domain.expiration_date).getTime(),
+              sourceChainId: defaultChainId,
+              isOmnichain: false,
+              isExpired: new Date(domain.expiration_date) < new Date()
+            }
+          }));
+        }
       });
     } catch (error) {
       console.error('Failed to load user domains:', error);
@@ -1411,14 +1464,29 @@ export default function Home() {
                       <DomainName>
                         {searchResult.name}.zeta
                       </DomainName>
-                      {makeOmnichain && (
-                        <BadgeContainer>
+                      <BadgeContainer>
+                        {makeOmnichain ? (
                           <OmnichainBadge>
                             <FaGlobe size={10} />
                             Will be Omnichain
                           </OmnichainBadge>
-                        </BadgeContainer>
-                      )}
+                        ) : (
+                          (() => {
+                            const chainConfig = getChainConfig(currentChainId);
+                            return chainConfig ? (
+                              <NetworkBadge color={chainConfig.color}>
+                                <div style={{ 
+                                  width: '8px', 
+                                  height: '8px', 
+                                  borderRadius: '50%', 
+                                  backgroundColor: chainConfig.color 
+                                }} />
+                                {chainConfig.shortName} Only
+                              </NetworkBadge>
+                            ) : null;
+                          })()
+                        )}
+                      </BadgeContainer>
                     </DomainNameWithBadge>
                     <AvailabilityBadge $available={searchResult.available}>
                       {searchResult.available ? <FaCheck /> : <FaTimes />}
@@ -1478,9 +1546,20 @@ export default function Home() {
 
               {walletConnected && (
                 <div style={{ display: 'flex', gap: 12, alignItems: 'stretch', marginTop: 16 }}>
-                  <NetworkSwitcher style={{ flex: '0 0 auto' }} />
+                  {wagmiAccount.isConnected && <NetworkSwitcher style={{ flex: '0 0 auto' }} />}
                   <DisconnectButton 
-                    onClick={() => { try { wagmiDisconnect?.(); } catch (e) {} try { disconnect(); } catch (e) {} }}
+                    onClick={async () => { 
+                      try { 
+                        await wagmiDisconnect?.(); 
+                      } catch (e) {
+                        console.error('Wagmi disconnect error:', e);
+                      }
+                      try { 
+                        disconnect(); 
+                      } catch (e) {
+                        console.error('Custom disconnect error:', e);
+                      }
+                    }}
                     style={{ flex: 1 }}
                   >
                     <FaSignOutAlt />
@@ -1533,12 +1612,44 @@ export default function Home() {
                                 <DomainNameWithBadge>
                                   <DomainCardName>{domain.name}</DomainCardName>
                                   <BadgeContainer>
-                                    {domainInfoCache[domain.name]?.isOmnichain && (
-                                      <OmnichainBadge>
-                                        <FaGlobe size={10} />
-                                        Omnichain
-                                      </OmnichainBadge>
-                                    )}
+                                    {(() => {
+                                      const domainInfo = domainInfoCache[domain.name];
+                                      
+                                      if (domainInfo?.isOmnichain) {
+                                        return (
+                                          <OmnichainBadge>
+                                            <FaGlobe size={10} />
+                                            Omnichain
+                                          </OmnichainBadge>
+                                        );
+                                      } else if (domainInfo?.sourceChainId) {
+                                        const chainConfig = getChainConfig(domainInfo.sourceChainId);
+                                        return chainConfig ? (
+                                          <NetworkBadge color={chainConfig.color}>
+                                            <div style={{ 
+                                              width: '8px', 
+                                              height: '8px', 
+                                              borderRadius: '50%', 
+                                              backgroundColor: chainConfig.color 
+                                            }} />
+                                            {chainConfig.shortName}
+                                          </NetworkBadge>
+                                        ) : null;
+                                      }
+                                      // If no domain info yet, show current network badge as default
+                                      const chainConfig = getChainConfig(currentChainId);
+                                      return chainConfig ? (
+                                        <NetworkBadge color={chainConfig.color}>
+                                          <div style={{ 
+                                            width: '8px', 
+                                            height: '8px', 
+                                            borderRadius: '50%', 
+                                            backgroundColor: chainConfig.color 
+                                          }} />
+                                          {chainConfig.shortName}
+                                        </NetworkBadge>
+                                      ) : null;
+                                    })()}
                                   </BadgeContainer>
                                 </DomainNameWithBadge>
                                 <DomainStatusContainer>

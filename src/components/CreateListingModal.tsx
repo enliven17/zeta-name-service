@@ -18,45 +18,77 @@ const Backdrop = styled.div`
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: 20px;
+  backdrop-filter: blur(4px);
 `;
 
 const Card = styled.div`
   background: rgba(255,255,255,0.08);
   border: 1px solid rgba(255,255,255,0.2);
   border-radius: 16px;
-  padding: 20px;
-  width: 420px;
+  padding: 24px;
+  width: 480px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
 `;
 
 const Title = styled.h3`
   color: #fff;
-  margin: 0 0 12px 0;
+  margin: 0 0 16px 0;
+  font-size: 1.25rem;
+  font-weight: 600;
 `;
 
 const Input = styled.input`
   width: 100%;
-  padding: 12px;
-  border-radius: 10px;
+  padding: 14px 16px;
+  border-radius: 12px;
   border: 1px solid rgba(255,255,255,0.2);
   background: rgba(255,255,255,0.12);
   color: #fff;
+  font-size: 1rem;
+  box-sizing: border-box;
+  
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
+  
+  &:focus {
+    outline: none;
+    border-color: #00d2ff;
+    box-shadow: 0 0 0 2px rgba(0, 210, 255, 0.2);
+  }
 `;
 
 const Row = styled.div`
   display: flex;
-  gap: 8px;
-  margin-top: 12px;
+  gap: 12px;
+  margin-top: 20px;
 `;
 
 const Button = styled.button`
   flex: 1;
-  padding: 12px;
+  padding: 14px 20px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 12px;
   color: #fff;
   background: linear-gradient(135deg, #22c55e 0%, #065f46 100%);
   cursor: pointer;
-  &:disabled { opacity: .6; cursor: not-allowed; }
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+  }
+  
+  &:disabled { 
+    opacity: 0.6; 
+    cursor: not-allowed;
+    transform: none;
+  }
 `;
 
 const CrossChainOption = styled.div`
@@ -107,13 +139,14 @@ const DomainTypeInfo = styled.div`
   background: rgba(255, 193, 7, 0.1);
   border: 1px solid rgba(255, 193, 7, 0.3);
   border-radius: 12px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
+  padding: 16px;
+  margin: 16px 0;
   color: #ffc107;
   font-size: 0.9rem;
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 12px;
+  line-height: 1.5;
 `;
 
 interface Props {
@@ -244,7 +277,7 @@ export default function CreateListingModal({ domain, sellerAddress, onClose, onL
     <Backdrop onClick={onClose}>
       <Card onClick={(e) => e.stopPropagation()}>
         <Title>List {domain.name}</Title>
-        <div style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 8 }}>Enter price in ETH</div>
+        <div style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 12, fontSize: '0.95rem' }}>Enter price in ETH</div>
         <Input placeholder="e.g. 0.1" value={price} onChange={(e) => setPrice(e.target.value)} />
         
         {isLoadingDomainInfo ? (
@@ -287,9 +320,29 @@ export default function CreateListingModal({ domain, sellerAddress, onClose, onL
           </>
         )}
 
-        {error && <div style={{ color: '#ef4444', marginTop: 8 }}>{error}</div>}
+        {error && (
+          <div style={{ 
+            color: '#ef4444', 
+            marginTop: 16, 
+            padding: '12px 16px',
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            borderRadius: '8px',
+            fontSize: '0.9rem'
+          }}>
+            {error}
+          </div>
+        )}
         <Row>
-          <Button onClick={onClose} style={{ background: 'rgba(255,255,255,0.15)' }}>Cancel</Button>
+          <Button 
+            onClick={onClose} 
+            style={{ 
+              background: 'rgba(255,255,255,0.15)',
+              border: '1px solid rgba(255,255,255,0.2)'
+            }}
+          >
+            Cancel
+          </Button>
           <Button onClick={submit} disabled={loading || isLoadingDomainInfo}>
             {loading ? 'Listing...' : `Create ${allowCrossChain ? 'Cross-Chain ' : ''}Listing`}
           </Button>
