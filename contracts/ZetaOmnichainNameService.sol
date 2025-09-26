@@ -3,9 +3,55 @@ pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+// ZetaChain interfaces for cross-chain functionality
+interface IERC20 {
+    function transfer(address to, uint256 amount) external returns (bool);
+    function transferFrom(address from, address to, uint256 amount) external returns (bool);
+    function balanceOf(address account) external view returns (uint256);
+}
+
+interface IZetaConnector {
+    function send(ZetaInterfaces.SendInput calldata input) external;
+}
+
+interface ZetaInterfaces {
+    struct SendInput {
+        uint256 destinationChainId;
+        bytes destinationAddress;
+        uint256 destinationGasLimit;
+        bytes message;
+        uint256 zetaValueAndGas;
+        bytes zetaParams;
+    }
+}
+
+interface IZetaReceiver {
+    function onZetaMessage(ZetaInterfaces.ZetaMessage calldata zetaMessage) external;
+    function onZetaRevert(ZetaInterfaces.ZetaRevert calldata zetaRevert) external;
+}
+
+interface ZetaInterfaces {
+    struct ZetaMessage {
+        bytes zetaTxSenderAddress;
+        uint256 sourceChainId;
+        address destinationAddress;
+        uint256 zetaValue;
+        bytes message;
+    }
+    
+    struct ZetaRevert {
+        address zetaTxSenderAddress;
+        uint256 sourceChainId;
+        bytes destinationAddress;
+        uint256 destinationChainId;
+        uint256 remainingZetaValue;
+        bytes message;
+    }
+}
+
 /// @title ZetaChain Omnichain Name Service
 /// @notice Cross-chain domain name service supporting multiple blockchains via ZetaChain
-contract ZetaOmnichainNameService is Ownable {
+contract ZetaOmnichainNameService is Ownable, IZetaReceiver {
     struct DomainRecord {
         address owner;
         uint64 expiresAt;

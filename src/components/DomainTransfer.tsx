@@ -258,6 +258,14 @@ const CrossChainInfo = styled.div`
   margin-bottom: 16px;
 `;
 
+const TransferInfo = styled.div`
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+`;
+
 const InfoRow = styled.div`
   display: flex;
   justify-content: space-between;
@@ -499,6 +507,24 @@ export const DomainTransfer: React.FC<DomainTransferProps> = ({
                   Cross-Chain
                 </TransferTypeOption>
               </TransferTypeSelector>
+
+              {transferType === 'same-chain' && (
+                <TransferInfo>
+                  <InfoRow>
+                    <InfoLabel>Transfer Fee:</InfoLabel>
+                    <InfoValue>
+                      {(() => {
+                        const chainConfig = getChainConfig(currentChainId);
+                        return chainConfig ? `${chainConfig.transferFee} ${chainConfig.currency}` : '0.0001 ETH';
+                      })()}
+                    </InfoValue>
+                  </InfoRow>
+                  <InfoRow>
+                    <InfoLabel>Network:</InfoLabel>
+                    <InfoValue>{getChainConfig(currentChainId)?.name || 'Current Network'}</InfoValue>
+                  </InfoRow>
+                </TransferInfo>
+              )}
 
               {transferType === 'cross-chain' && domainInfo?.isOmnichain && (
                 <>

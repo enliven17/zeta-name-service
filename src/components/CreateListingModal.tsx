@@ -277,8 +277,48 @@ export default function CreateListingModal({ domain, sellerAddress, onClose, onL
     <Backdrop onClick={onClose}>
       <Card onClick={(e) => e.stopPropagation()}>
         <Title>List {domain.name}</Title>
-        <div style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 12, fontSize: '0.95rem' }}>Enter price in ETH</div>
-        <Input placeholder="e.g. 0.1" value={price} onChange={(e) => setPrice(e.target.value)} />
+        <div style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 12, fontSize: '0.95rem' }}>
+          Enter price in {(() => {
+            const chainConfig = getChainConfig(currentChainId);
+            return chainConfig?.currency || 'ETH';
+          })()}
+        </div>
+        <Input 
+          placeholder={(() => {
+            const chainConfig = getChainConfig(currentChainId);
+            return `e.g. 0.1 ${chainConfig?.currency || 'ETH'}`;
+          })()} 
+          value={price} 
+          onChange={(e) => setPrice(e.target.value)} 
+        />
+        
+        <div style={{ 
+          background: 'rgba(34, 197, 94, 0.1)', 
+          border: '1px solid rgba(34, 197, 94, 0.3)', 
+          borderRadius: '8px', 
+          padding: '12px', 
+          margin: '16px 0',
+          fontSize: '0.9rem'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+            <span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Listing Fee:</span>
+            <span style={{ color: '#22c55e', fontWeight: '600' }}>
+              {(() => {
+                const chainConfig = getChainConfig(currentChainId);
+                return chainConfig ? `${chainConfig.listingFee} ${chainConfig.currency}` : '0.0001 ETH';
+              })()}
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Network:</span>
+            <span style={{ color: '#22c55e', fontWeight: '600' }}>
+              {(() => {
+                const chainConfig = getChainConfig(currentChainId);
+                return chainConfig?.name || 'Current Network';
+              })()}
+            </span>
+          </div>
+        </div>
         
         {isLoadingDomainInfo ? (
           <div style={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.7)', padding: '20px' }}>

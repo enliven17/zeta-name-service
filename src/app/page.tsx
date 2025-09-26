@@ -1021,10 +1021,14 @@ export default function Home() {
       // Domain availability is determined solely by database
       const isAvailable = databaseAvailable;
       
+      // Get dynamic price based on current network
+      const chainConfig = getChainConfig(currentChainId);
+      const price = chainConfig ? `${chainConfig.registrationPrice} ${chainConfig.currency}` : '0.001 ETH';
+      
       setSearchResult({
         name: trimmedQuery.toLowerCase(),
         available: isAvailable,
-        price: '0.001 ETH'
+        price: price
       });
     } catch (error) {
       console.error('Domain search failed:', error);
@@ -1045,7 +1049,7 @@ export default function Home() {
     setConfirmModal({
       isOpen: true,
       title: 'Confirm Domain Registration',
-      message: `You are about to register "${searchResult.name}.zeta"${omnichainText} for 0.001 ETH (1 year).${omnichainNote} This transaction cannot be undone.`,
+      message: `You are about to register "${searchResult.name}.zeta"${omnichainText} for ${searchResult.price} (1 year).${omnichainNote} This transaction cannot be undone.`,
       onConfirm: async () => {
         setConfirmModal(prev => ({ ...prev, isOpen: false }));
         
@@ -1060,7 +1064,7 @@ export default function Home() {
           
           console.log('🔗 Starting omnichain registration...');
           console.log('🌐 Make omnichain:', makeOmnichain);
-          console.log('💰 This will cost 0.001 ETH + gas fees');
+          console.log('💰 This will cost', searchResult.price, '+ gas fees');
           
           const contract = getOmnichainContract(window.ethereum, currentChainId);
           
@@ -1403,7 +1407,10 @@ export default function Home() {
               </Title>
               <Subtitle>
                 <ScrambleText 
-                  text="Get your own domain on Arbitrum Sepolia with .zeta" 
+                  text={(() => {
+                    const chainConfig = getChainConfig(currentChainId);
+                    return `Get your own domain on ${chainConfig?.name || 'Arbitrum Sepolia'} with .zeta`;
+                  })()} 
                   delay={800}
                   duration={2500}
                 />
@@ -1614,6 +1621,7 @@ export default function Home() {
                                   <BadgeContainer>
                                     {(() => {
                                       const domainInfo = domainInfoCache[domain.name];
+                                      console.log('🏷️ Badge for', domain.name, ':', domainInfo);
                                       
                                       if (domainInfo?.isOmnichain) {
                                         return (
@@ -1764,18 +1772,47 @@ export default function Home() {
                                 <span>Date: {formatDate(transfer.created_at)}</span>
                               </DomainCardInfo>
                               <DomainCardInfo>
-                                <span>Status: {transfer.status}</span>
+                                <span>
+                                  Status: 
+                                  <span style={{ 
+                                    color: transfer.status === 'completed' ? '#22c55e' : 
+                                           transfer.status === 'pending' ? '#f59e0b' : '#ef4444',
+                                    fontWeight: '600',
+                                    marginLeft: '4px'
+                                  }}>
+                                    {transfer.status === 'completed' ? '✅ Completed' : 
+                                     transfer.status === 'pending' ? '⏳ Processing' : '❌ Failed'}
+                                  </span>
+                                </span>
                                 {transfer.transaction_hash && (
-                                  <span>
+                                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                     <a 
-                                      href={`${process.env.NEXT_PUBLIC_ARB_SEPOLIA_EXPLORER_URL || 'https://sepolia.arbiscan.io'}/tx/${transfer.transaction_hash}`}
+                                      href={`https://sepolia.arbiscan.io/tx/${transfer.transaction_hash}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      style={{ color: '#3b82f6', textDecoration: 'none' }}
+                                      style={{ color: '#3b82f6', textDecoration: 'none', fontSize: '0.85rem' }}
                                     >
-                                      View TX
+                                      ARB Explorer
                                     </a>
-                                  </span>
+                                    <span style={{ color: 'rgba(255,255,255,0.5)' }}>|</span>
+                                    <a 
+                                      href={`https://athens.explorer.zetachain.com/tx/${transfer.transaction_hash}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      style={{ color: '#00d2ff', textDecoration: 'none', fontSize: '0.85rem' }}
+                                    >
+                                      ZETA Explorer
+                                    </a>
+                                    <span style={{ color: 'rgba(255,255,255,0.5)' }}>|</span>
+                                    <a 
+                                      href={`https://sepolia.etherscan.io/tx/${transfer.transaction_hash}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      style={{ color: '#627eea', textDecoration: 'none', fontSize: '0.85rem' }}
+                                    >
+                                      ETH Explorer
+                                    </a>
+                                  </div>
                                 )}
                               </DomainCardInfo>
                             </DomainCard>
