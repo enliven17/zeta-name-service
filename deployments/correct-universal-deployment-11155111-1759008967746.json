@@ -1,0 +1,8 @@
+{
+  "contractAddress": "0xA31215d198aa5385Bdb7411D6e7CD7425697d696",
+  "gatewayAddress": "0x6c533f7fe93fae114d0954697069df33c9b74fd7",
+  "deployer": "0x71197e7a1CA5A2cb2AD82432B924F69B1E3dB123",
+  "network": "ethereumSepolia",
+  "chainId": 11155111,
+  "timestamp": "2025-09-27T21:36:07.746Z"
+}

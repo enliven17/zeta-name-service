@@ -238,9 +238,9 @@ export const chainConfigs = {
 // Contract addresses by chain
 export const contractAddresses = {
   [arbitrumSepolia.id]: {
-    nameService: process.env.NEXT_PUBLIC_ZETA_CONTRACT_ADDRESS || '0xAaFE053F1D8402282c839aeb595218F30aa7DCC6',
-    marketplace: process.env.NEXT_PUBLIC_MARKETPLACE_CONTRACT_ADDRESS || '0x897FBB05A18ceE2d9451a9F644B9831DDf4Dd481',
-    omnichain: process.env.NEXT_PUBLIC_OMNICHAIN_CONTRACT_ADDRESS || '0xAaFE053F1D8402282c839aeb595218F30aa7DCC6',
+    nameService: process.env.NEXT_PUBLIC_ARB_NAME_SERVICE_ADDRESS || '0x813F8CfB8897F46bF0fD21914Cb76a21FD3a97Dd',
+    marketplace: process.env.NEXT_PUBLIC_ARB_MARKETPLACE_ADDRESS || '0x813F8CfB8897F46bF0fD21914Cb76a21FD3a97Dd',
+    omnichain: process.env.NEXT_PUBLIC_ARB_OMNICHAIN_ADDRESS || '0x813F8CfB8897F46bF0fD21914Cb76a21FD3a97Dd',
   },
   [zetaChainTestnet.id]: {
     nameService: process.env.NEXT_PUBLIC_ZETACHAIN_NAME_SERVICE_ADDRESS || '0x6F40A56250fbB57F5a17C815BE66A36804590669',
@@ -248,9 +248,9 @@ export const contractAddresses = {
     omnichain: process.env.NEXT_PUBLIC_ZETACHAIN_NAME_SERVICE_ADDRESS || '0x6F40A56250fbB57F5a17C815BE66A36804590669',
   },
   [ethereumSepolia.id]: {
-    nameService: process.env.NEXT_PUBLIC_ETHEREUM_NAME_SERVICE_ADDRESS || '0x19E88E3790A43721faD03CD5A68A100E18F40c4E',
-    marketplace: process.env.NEXT_PUBLIC_ETHEREUM_MARKETPLACE_ADDRESS || '0x7a9D78D1E5fe688F80D4C2c06Ca4C0407A967644',
-    omnichain: process.env.NEXT_PUBLIC_ETHEREUM_NAME_SERVICE_ADDRESS || '0x19E88E3790A43721faD03CD5A68A100E18F40c4E',
+    nameService: process.env.NEXT_PUBLIC_ETH_NAME_SERVICE_ADDRESS || '0x7Dd728c2AF6553801DDc2Be4906f09AcB33C2A74',
+    marketplace: process.env.NEXT_PUBLIC_ETH_MARKETPLACE_ADDRESS || '0x7Dd728c2AF6553801DDc2Be4906f09AcB33C2A74',
+    omnichain: process.env.NEXT_PUBLIC_ETH_OMNICHAIN_ADDRESS || '0x7Dd728c2AF6553801DDc2Be4906f09AcB33C2A74',
   },
   [bscTestnet.id]: {
     nameService: process.env.NEXT_PUBLIC_BSC_NAME_SERVICE_ADDRESS || '',
@@ -269,6 +269,14 @@ export const zetaProtocolAddresses = {
   connector: process.env.NEXT_PUBLIC_ZETA_CONNECTOR_ADDRESS || '',
   token: process.env.NEXT_PUBLIC_ZETA_TOKEN_ADDRESS || '',
   tss: process.env.NEXT_PUBLIC_TSS_ADDRESS || '',
+} as const
+
+// ZetaChain Gateway addresses (doğru adresler)
+export const zetaGatewayAddresses = {
+  [arbitrumSepolia.id]: '0x0dA86Dc3F9B71F84a0E97B0e2291e50B7a5df10f',
+  [ethereumSepolia.id]: '0x0c487a766110c85d301d96e33579c5b317fa4995',
+  [bscTestnet.id]: '0x0c487a766110c85d301d96e33579c5b317fa4995',
+  [polygonMumbai.id]: '0x0c487a766110c85d301d96e33579c5b317fa4995',
 } as const
 
 // Cross-chain route configurations

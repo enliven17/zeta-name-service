@@ -4,9 +4,9 @@ const { ethers } = require('hardhat');
 async function testCrossChainTransfer() {
   console.log('🧪 Testing Real Cross-Chain Transfer...\n');
 
-  // Contract addresses (update these after deployment)
-  const ETH_CONTRACT = '0x19E88E3790A43721faD03CD5A68A100E18F40c4E'; // Current ETH contract
-  const ZETA_CONTRACT = '0x6F40A56250fbB57F5a17C815BE66A36804590669'; // Current ZETA contract
+  // Contract addresses (NEW - Real Cross-Chain)
+  const ETH_CONTRACT = '0x6783fB75e995Af777026141C68baee68a8C68c70'; // NEW ETH contract
+  const ZETA_CONTRACT = '0x6DB7321011572AE285cc0371a46669A5f3799ADe'; // NEW ZETA contract
 
   const ABI = [
     "function ownerOf(string calldata name) external view returns (address)",
@@ -21,12 +21,12 @@ async function testCrossChainTransfer() {
     const ethProvider = new ethers.JsonRpcProvider('https://1rpc.io/sepolia');
     const ethContract = new ethers.Contract(ETH_CONTRACT, ABI, ethProvider);
 
-    // Check if test domain exists
+    // Check if deneme domain exists (our test domain)
     try {
-      const owner = await ethContract.ownerOf('testcrosschain');
+      const owner = await ethContract.ownerOf('deneme');
       console.log('✅ Test domain owner:', owner);
       
-      const domainInfo = await ethContract.getDomainInfo('testcrosschain');
+      const domainInfo = await ethContract.getDomainInfo('deneme');
       console.log('📊 Domain info:', {
         owner: domainInfo[0],
         expiresAt: new Date(Number(domainInfo[1]) * 1000).toISOString(),
@@ -51,7 +51,7 @@ async function testCrossChainTransfer() {
     const zetaContract = new ethers.Contract(ZETA_CONTRACT, ABI, zetaProvider);
 
     try {
-      const zetaOwner = await zetaContract.ownerOf('testcrosschain');
+      const zetaOwner = await zetaContract.ownerOf('deneme');
       console.log('✅ ZetaChain domain owner:', zetaOwner);
     } catch (e) {
       console.log('❌ Domain not found on ZetaChain (expected if not transferred yet)');

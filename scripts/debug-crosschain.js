@@ -15,6 +15,8 @@ async function main() {
   // Contract addresses
   const contractAddress = currentChainId === 421614 
     ? "0xAaFE053F1D8402282c839aeb595218F30aa7DCC6" 
+    : currentChainId === 11155111
+    ? "0x6783fB75e995Af777026141C68baee68a8C68c70"
     : "0x6F40A56250fbB57F5a17C815BE66A36804590669";
 
   console.log("Contract address:", contractAddress);

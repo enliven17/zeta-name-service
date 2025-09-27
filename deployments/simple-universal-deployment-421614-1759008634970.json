@@ -1,0 +1,29 @@
+{
+  "network": {
+    "name": "arbitrumSepolia",
+    "chainId": "421614",
+    "rpc": "N/A"
+  },
+  "contracts": {
+    "ZetaUniversalNameServiceSimple": "0xE0AA86abfb00A6E33EA4d94C00eA3B8E06C8477f"
+  },
+  "configuration": {
+    "gateway": "0x6c533f7fe93fae114d0954697069df33c9b74fd7",
+    "registrationPrice": "0.001",
+    "transferFee": "0.0001"
+  },
+  "deployer": "0x71197e7a1CA5A2cb2AD82432B924F69B1E3dB123",
+  "deployedAt": "2025-09-27T21:30:34.970Z",
+  "supportedChains": [
+    {
+      "chainId": 421614,
+      "name": "Arbitrum Sepolia",
+      "explorer": "https://sepolia.arbiscan.io"
+    },
+    {
+      "chainId": 11155111,
+      "name": "Ethereum Sepolia",
+      "explorer": "https://sepolia.etherscan.io"
+    }
+  ]
+}

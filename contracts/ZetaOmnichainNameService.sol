@@ -14,7 +14,7 @@ interface IZetaConnector {
     function send(ZetaInterfaces.SendInput calldata input) external;
 }
 
-interface ZetaInterfaces {
+library ZetaInterfaces {
     struct SendInput {
         uint256 destinationChainId;
         bytes destinationAddress;
@@ -23,14 +23,7 @@ interface ZetaInterfaces {
         uint256 zetaValueAndGas;
         bytes zetaParams;
     }
-}
-
-interface IZetaReceiver {
-    function onZetaMessage(ZetaInterfaces.ZetaMessage calldata zetaMessage) external;
-    function onZetaRevert(ZetaInterfaces.ZetaRevert calldata zetaRevert) external;
-}
-
-interface ZetaInterfaces {
+    
     struct ZetaMessage {
         bytes zetaTxSenderAddress;
         uint256 sourceChainId;
@@ -47,6 +40,11 @@ interface ZetaInterfaces {
         uint256 remainingZetaValue;
         bytes message;
     }
+}
+
+interface IZetaReceiver {
+    function onZetaMessage(ZetaInterfaces.ZetaMessage calldata zetaMessage) external;
+    function onZetaRevert(ZetaInterfaces.ZetaRevert calldata zetaRevert) external;
 }
 
 /// @title ZetaChain Omnichain Name Service
@@ -128,8 +126,12 @@ contract ZetaOmnichainNameService is Ownable, IZetaReceiver {
         _transferOwnership(initialOwner);
         
         // Initialize ZetaChain components
-        zetaConnector = IZetaConnector(_zetaConnector);
-        zetaToken = IERC20(_zetaToken);
+        if (_zetaConnector != address(0)) {
+            zetaConnector = IZetaConnector(_zetaConnector);
+        }
+        if (_zetaToken != address(0)) {
+            zetaToken = IERC20(_zetaToken);
+        }
         tssAddress = _tssAddress;
         
         // Initialize Arbitrum Sepolia as primary chain
@@ -156,8 +158,12 @@ contract ZetaOmnichainNameService is Ownable, IZetaReceiver {
         address _token,
         address _tss
     ) external onlyOwner {
-        zetaConnector = _connector;
-        zetaToken = _token;
+        if (_connector != address(0)) {
+            zetaConnector = IZetaConnector(_connector);
+        }
+        if (_token != address(0)) {
+            zetaToken = IERC20(_token);
+        }
         tssAddress = _tss;
         emit ZetaConfigUpdated(_connector, _token, _tss);
     }
@@ -218,7 +224,7 @@ contract ZetaOmnichainNameService is Ownable, IZetaReceiver {
 
     function getDomainInfo(string calldata name) external view returns (
         address owner,
-        uint64 expiresAt,
+        uint64 expiration,
         uint256 sourceChainId,
         bool isOmnichain,
         bool isExpired
@@ -356,7 +362,7 @@ contract ZetaOmnichainNameService is Ownable, IZetaReceiver {
         address to,
         uint256 sourceChainId
     ) external {
-        require(msg.sender == zetaConnector || msg.sender == tssAddress, "UNAUTHORIZED");
+        require(msg.sender == address(zetaConnector) || msg.sender == tssAddress, "UNAUTHORIZED");
         require(!processedMessages[messageId], "MESSAGE_PROCESSED");
         require(supportedChains[sourceChainId].isSupported, "INVALID_SOURCE_CHAIN");
 
@@ -418,7 +424,7 @@ contract ZetaOmnichainNameService is Ownable, IZetaReceiver {
             uint8 messageType,
             string memory domainName,
             address recipient,
-            uint64 expiresAt,
+            uint64 domainExpiresAt,
             bool isOmnichain,
             bytes32 messageId
         ) = abi.decode(zetaMessage.message, (uint8, string, address, uint64, bool, bytes32));
@@ -431,7 +437,7 @@ contract ZetaOmnichainNameService is Ownable, IZetaReceiver {
             // Mint domain on target chain
             nameToRecord[domainName] = DomainRecord({
                 owner: recipient,
-                expiresAt: expiresAt,
+                expiresAt: domainExpiresAt,
                 sourceChainId: zetaMessage.sourceChainId,
                 isOmnichain: isOmnichain
             });
@@ -439,7 +445,7 @@ contract ZetaOmnichainNameService is Ownable, IZetaReceiver {
             emit Registered(
                 domainName,
                 recipient,
-                expiresAt,
+                domainExpiresAt,
                 block.chainid,
                 isOmnichain
             );
@@ -463,7 +469,7 @@ contract ZetaOmnichainNameService is Ownable, IZetaReceiver {
             uint8 messageType,
             string memory domainName,
             address originalOwner,
-            uint64 expiresAt,
+            uint64 domainExpiresAt,
             bool isOmnichain,
             bytes32 messageId
         ) = abi.decode(zetaRevert.message, (uint8, string, address, uint64, bool, bytes32));
@@ -472,7 +478,7 @@ contract ZetaOmnichainNameService is Ownable, IZetaReceiver {
             // Restore domain on source chain
             nameToRecord[domainName] = DomainRecord({
                 owner: originalOwner,
-                expiresAt: expiresAt,
+                expiresAt: domainExpiresAt,
                 sourceChainId: zetaRevert.sourceChainId,
                 isOmnichain: isOmnichain
             });
@@ -496,18 +502,18 @@ contract ZetaOmnichainNameService is Ownable, IZetaReceiver {
     function emergencyRecoverDomain(
         string calldata name,
         address owner,
-        uint64 expiresAt,
+        uint64 domainExpiresAt,
         uint256 sourceChainId,
         bool isOmnichain
     ) external onlyOwner {
         string memory n = _toLower(name);
         nameToRecord[n] = DomainRecord({
             owner: owner,
-            expiresAt: expiresAt,
+            expiresAt: domainExpiresAt,
             sourceChainId: sourceChainId,
             isOmnichain: isOmnichain
         });
         
-        emit Registered(n, owner, expiresAt, block.chainid, isOmnichain);
+        emit Registered(n, owner, domainExpiresAt, block.chainid, isOmnichain);
     }
 }

@@ -1,6 +1,26 @@
-# Zeta Name Service
+# ZetaChain Universal Name Service
 
-A decentralized domain name service on Arbitrum Sepolia. Register and manage your own .zeta domains with a beautiful, modern interface, seamless wallet integration, and a fully functional marketplace.
+A cross-chain domain name service powered by ZetaChain's Universal App pattern. Register, transfer, and manage .zeta domains across multiple blockchain networks with seamless cross-chain functionality, beautiful modern interface, and comprehensive marketplace features.
+
+## 🌉 Cross-Chain Features
+
+### **Universal App Pattern**
+- **Cross-Chain Domains**: Register domains on Arbitrum Sepolia and Ethereum Sepolia
+- **Seamless Transfers**: Transfer domains between chains using ZetaChain Gateway
+- **Universal Ownership**: Domains work across all supported networks
+- **ZetaChain Integration**: Powered by ZetaChain's Universal App infrastructure
+
+### **Multi-Chain Support**
+- **Arbitrum Sepolia**: Primary network (0.001 ETH registration)
+- **Ethereum Sepolia**: Secondary network (0.002 ETH registration)
+- **ZetaChain Testnet**: Cross-chain infrastructure and processing
+- **Future Networks**: BSC Testnet, Polygon Mumbai (planned)
+
+### **Cross-Chain Transfer System**
+- **Burn & Mint**: Domains are burned on source chain and minted on target chain
+- **Gateway Integration**: Uses ZetaChain Gateway for secure cross-chain communication
+- **Real-time Processing**: 2-5 minute cross-chain transfer completion
+- **Event Tracking**: Complete transfer history and status monitoring
 
 ## 🌟 Features
 
@@ -53,10 +73,13 @@ A decentralized domain name service on Arbitrum Sepolia. Register and manage you
 - **React Icons**: Beautiful icon library
 
 ### **Blockchain Integration**
-- **Arbitrum Sepolia**: Built specifically for Arbitrum Sepolia (Chain ID: 421614)
+- **ZetaChain Universal App**: Cross-chain domain management using Universal App pattern
+- **Arbitrum Sepolia**: Primary network (Chain ID: 421614)
+- **Ethereum Sepolia**: Secondary network (Chain ID: 11155111)
+- **ZetaChain Gateway**: Cross-chain communication infrastructure
 - **Hardhat**: Smart contract development and deployment
 - **Ethers.js v6**: Latest Ethereum library for blockchain interactions
-- **Smart Contracts**: Solidity-based domain registry and marketplace
+- **Smart Contracts**: Solidity-based Universal Name Service contracts
 - **Wagmi**: React hooks for Ethereum integration
 
 ### **Database & Backend**
@@ -104,15 +127,22 @@ src/
     └── supabase.ts        # Database service layer
 
 contracts/                 # Smart contracts
-├── ZetaNameService.sol      # Main domain registry contract
-└── ZetaNameMarketplace.sol  # Marketplace contract for domain trading
+├── ZetaUniversalNameServiceFixed.sol  # Universal App domain service
+├── ZetaUniversalNameService.sol       # Legacy Universal App contract
+├── ZetaOmnichainNameService.sol       # Legacy omnichain contract
+├── ZetaNameService.sol                # Legacy single-chain contract
+└── ZetaNameMarketplace.sol            # Marketplace contract for domain trading
 
 scripts/                   # Deployment and utility scripts
-├── deploy-credit.js       # Deploy contracts to Arbitrum Sepolia
-├── check-contract-balance.js # Check contract balances and earnings
-├── withdraw-funds.js      # Withdraw accumulated fees
+├── deploy-fixed-universal.js    # Deploy Universal App contracts
+├── test-final-crosschain.js     # Test cross-chain transfers
+├── test-frontend-transfer.js    # Test frontend functionality
+├── check-transfer-result.js     # Check cross-chain transfer results
+├── deploy-credit.js             # Deploy legacy contracts
+├── check-contract-balance.js    # Check contract balances and earnings
+├── withdraw-funds.js            # Withdraw accumulated fees
 ├── sync-marketplace-ownership.js # Fix marketplace ownership issues
-└── debug-marketplace.js  # Debug marketplace configuration
+└── debug-marketplace.js         # Debug marketplace configuration
 
 public/
 ├── Logo2.png             # Application logo
@@ -166,14 +196,26 @@ public/
    
    Edit `.env.local` file:
    ```env
+   # Supabase Configuration
    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+   
+   # Wallet Configuration
    NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
-   NEXT_PUBLIC_ARB_SEPOLIA_EXPLORER_URL=https://sepolia.arbiscan.io
+   
+   # Contract Addresses (FIXED Universal App)
+   NEXT_PUBLIC_ARB_NAME_SERVICE_ADDRESS=0x813F8CfB8897F46bF0fD21914Cb76a21FD3a97Dd
+   NEXT_PUBLIC_ETH_NAME_SERVICE_ADDRESS=0x7Dd728c2AF6553801DDc2Be4906f09AcB33C2A74
+   
+   # Gateway Addresses (ZetaChain)
+   NEXT_PUBLIC_ARB_GATEWAY_ADDRESS=0x0dA86Dc3F9B71F84a0E97B0e2291e50B7a5df10f
+   NEXT_PUBLIC_ETH_GATEWAY_ADDRESS=0x0c487a766110c85d301d96e33579c5b317fa4995
+   
+   # RPC Endpoints
    NEXT_PUBLIC_ARB_SEPOLIA_RPC_URL=https://sepolia-rollup.arbitrum.io/rpc
-   NEXT_PUBLIC_ARB_SEPOLIA_CHAIN_ID=421614
-   NEXT_PUBLIC_ZETA_CONTRACT_ADDRESS=deployed_name_service_address
-   NEXT_PUBLIC_MARKETPLACE_CONTRACT_ADDRESS=deployed_marketplace_address
+   NEXT_PUBLIC_ETH_SEPOLIA_RPC_URL=https://1rpc.io/sepolia
+   
+   # Deployment
    PRIVATE_KEY=your_wallet_private_key_for_deployment
    CONTRACT_OWNER_ADDRESS=your_contract_owner_address
    ```
@@ -188,8 +230,12 @@ public/
    # Compile contracts
    npx hardhat compile
    
-   # Deploy to Arbitrum Sepolia
-   npx hardhat run scripts/deploy-credit.js --network arbitrumSepolia
+   # Deploy Universal App contracts
+   npx hardhat run scripts/deploy-fixed-universal.js --network arbitrumSepolia
+   npx hardhat run scripts/deploy-fixed-universal.js --network ethereumSepolia
+   
+   # Test cross-chain functionality
+   npx hardhat run scripts/test-final-crosschain.js --network arbitrumSepolia
    ```
 
 6. **Start development server**
@@ -230,27 +276,31 @@ public/
    - **Block Explorer**: https://sepolia.arbiscan.io
 
 ### **Network Requirements**
-- The application works on Arbitrum Sepolia (Chain ID: 421614)
+- **Arbitrum Sepolia**: Primary network (Chain ID: 421614) - 0.001 ETH registration
+- **Ethereum Sepolia**: Secondary network (Chain ID: 11155111) - 0.002 ETH registration
+- **ZetaChain Testnet**: Cross-chain infrastructure (Chain ID: 7001)
 - RainbowKit handles network switching automatically
 - Users will be prompted to switch if on wrong network
 
 ### **Smart Contracts**
-- **Name Service**: Domain registration and management
-- **Marketplace**: Domain trading and listings
-- **Network**: Arbitrum Sepolia
-- **Registration Fee**: 0.001 ETH per domain per year
+- **Universal Name Service**: Cross-chain domain registration and management
+- **ZetaChain Gateway**: Cross-chain communication infrastructure
+- **Marketplace**: Domain trading and listings (legacy)
+- **Registration Fees**: 0.001 ETH (Arbitrum), 0.002 ETH (Ethereum)
 - **Transfer Fee**: 0.0001 ETH per transfer
-- **Listing Fee**: 0.0001 ETH per marketplace listing
+- **Cross-Chain Transfer**: Burn on source, mint on target chain
 - **Owner**: Contract owner can withdraw accumulated fees
 
 ## 📱 Usage
 
 ### **Registering a Domain**
 1. **Connect Wallet**: Use RainbowKit to connect your preferred wallet
-2. **Search Domain**: Enter your desired domain name in the search box
-3. **Check Availability**: Click "Search" to check if the domain is available
-4. **Register**: If available, click "Register Domain" and confirm the transaction
-5. **Pay Fee**: Pay 0.001 ETH for 1 year registration
+2. **Select Network**: Choose Arbitrum Sepolia or Ethereum Sepolia
+3. **Search Domain**: Enter your desired domain name in the search box
+4. **Check Availability**: Click "Search" to check if the domain is available
+5. **Register**: If available, click "Register Domain" and confirm the transaction
+6. **Pay Fee**: Pay 0.001 ETH (Arbitrum) or 0.002 ETH (Ethereum) for 1 year registration
+7. **Enable Omnichain**: Check "Make Omnichain" to enable cross-chain transfers
 
 ### **Managing Domains**
 1. **View Profile**: Click the "Profile" tab in bottom navigation
@@ -259,12 +309,23 @@ public/
 4. **List for Sale**: Click list button to put domains on marketplace (0.0001 ETH fee)
 5. **Status Check**: Monitor active/expired and listing status
 
-### **Domain Transfer**
+### **Cross-Chain Domain Transfer**
+1. **Select Domain**: Choose omnichain-enabled domain from your profile
+2. **Select Target Chain**: Choose destination network (Arbitrum ↔ Ethereum)
+3. **Enter Recipient**: Input recipient wallet address
+4. **Pay Fee**: Transfer requires 0.0001 ETH fee
+5. **Sign Transfer**: Sign the cross-chain transfer transaction
+6. **Wait for Processing**: Cross-chain transfer takes 2-5 minutes
+7. **Domain Burned**: Domain is burned on source chain
+8. **Domain Minted**: Domain is minted on target chain
+9. **Transfer Complete**: Recipient owns domain on target chain
+
+### **Same-Chain Domain Transfer**
 1. **Select Domain**: Choose domain from your profile
 2. **Enter Recipient**: Input recipient wallet address
 3. **Pay Fee**: Transfer requires 0.0001 ETH fee
 4. **Sign Transfer**: Sign the transfer transaction
-5. **Automatic Updates**: Domain ownership and marketplace listings update automatically
+5. **Instant Transfer**: Domain ownership updates immediately
 
 ### **Marketplace Trading**
 1. **Browse Market**: Click "Market" tab to see available domains
@@ -372,25 +433,49 @@ For support, questions, or feedback:
 
 ## 🌐 Links
 
-- **Arbitrum Sepolia Explorer**: [https://sepolia.arbiscan.io](https://sepolia.arbiscan.io)
-- **RPC Endpoint**: [https://sepolia-rollup.arbitrum.io/rpc](https://sepolia-rollup.arbitrum.io/rpc)
+### **Blockchain Explorers**
+- **Arbitrum Sepolia**: [https://sepolia.arbiscan.io](https://sepolia.arbiscan.io)
+- **Ethereum Sepolia**: [https://sepolia.etherscan.io](https://sepolia.etherscan.io)
+- **ZetaChain Testnet**: [https://athens.explorer.zetachain.com](https://athens.explorer.zetachain.com)
+
+### **RPC Endpoints**
+- **Arbitrum Sepolia**: [https://sepolia-rollup.arbitrum.io/rpc](https://sepolia-rollup.arbitrum.io/rpc)
+- **Ethereum Sepolia**: [https://1rpc.io/sepolia](https://1rpc.io/sepolia)
+- **ZetaChain Testnet**: [https://zetachain-athens-evm.blockpi.network/v1/rpc/public](https://zetachain-athens-evm.blockpi.network/v1/rpc/public)
+
+### **Contract Addresses**
+- **Arbitrum Name Service**: `0x813F8CfB8897F46bF0fD21914Cb76a21FD3a97Dd`
+- **Ethereum Name Service**: `0x7Dd728c2AF6553801DDc2Be4906f09AcB33C2A74`
+- **Arbitrum Gateway**: `0x0dA86Dc3F9B71F84a0E97B0e2291e50B7a5df10f`
+- **Ethereum Gateway**: `0x0c487a766110c85d301d96e33579c5b317fa4995`
 
 ## 📊 Project Status
 
-- ✅ **Smart Contracts**: Deployed and verified on Arbitrum Sepolia
-- ✅ **Frontend**: Complete with all core features
+- ✅ **Universal App Contracts**: Deployed on Arbitrum Sepolia & Ethereum Sepolia
+- ✅ **ZetaChain Integration**: Gateway addresses configured and working
+- ✅ **Cross-Chain Transfers**: Burn & mint functionality working
+- ✅ **Frontend**: Complete with cross-chain features
 - ✅ **Database**: Supabase integration with RLS policies
 - ✅ **Wallet Integration**: RainbowKit with 50+ wallet support
-- ✅ **Domain Registration**: Fully functional (1000 tCTC)
-- ✅ **Domain Transfer**: Complete transfer system (100 tCTC)
-- ✅ **Domain Marketplace**: Buy and sell domains with smart contracts
+- ✅ **Domain Registration**: Multi-chain registration (Arbitrum & Ethereum)
+- ✅ **Cross-Chain Transfer**: Seamless chain-to-chain transfers
+- ✅ **Domain Burning**: Source chain domain burning working
+- ✅ **Domain Minting**: Target chain domain minting working
+- ✅ **Gateway Communication**: ZetaChain Gateway integration working
 - ✅ **Transfer History**: View all transfer activity with navigation
-- ✅ **Profile Management**: Compact domain management with status indicators
+- ✅ **Profile Management**: Multi-chain domain management
 - ✅ **Search & Navigation**: Advanced search and pagination systems
 - ✅ **Security**: No hardcoded private keys, environment-based configuration
 
 ---
 
-**Built with ❤️ for the Zeta Omnichain ecosystem**
+**Built with ❤️ for the ZetaChain Universal App ecosystem**
 
-*Register your .zeta domain today and trade on the decentralized marketplace!*
+*Register your .zeta domain today and transfer it seamlessly across chains!*
+
+## 📋 System Architecture
+
+For detailed system architecture diagrams and technical documentation, see:
+- [System Architecture Documentation](docs/system-architecture.md)
+- [Cross-Chain Transfer Flow](docs/system-architecture.md#cross-chain-transfer-flow)
+- [Smart Contract Architecture](docs/system-architecture.md#smart-contract-architecture)
