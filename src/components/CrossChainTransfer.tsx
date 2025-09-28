@@ -323,9 +323,7 @@ export default function CrossChainTransfer({ isOpen, onClose, domainName, curren
 
       // Perform cross-chain transfer with fee
       const transferFee = ethers.parseEther("0.0001") // 0.0001 ETH transfer fee
-      const tx = await nameService.crossChainTransfer(domainName, recipientAddress, targetChainId, {
-        value: transferFee
-      })
+      const tx = await nameService.crossChainTransfer(domainName, recipientAddress, targetChainId)
       
       console.log('Cross-chain transfer initiated:', tx.hash)
       

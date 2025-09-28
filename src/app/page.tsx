@@ -1535,7 +1535,7 @@ export default function Home() {
                         onClick={() => {
                           if (!walletConnected) {
                             // Trigger wallet connection
-                            document.querySelector('[data-testid="rk-connect-button"]')?.click();
+                            (document.querySelector('[data-testid="rk-connect-button"]') as HTMLButtonElement)?.click();
                           } else {
                             registerDomain();
                           }

@@ -19,7 +19,7 @@ env.example
 
 # production
 /build
-
+zeta-docs
 # misc
 .DS_Store
 *.pem
@@ -63,3 +63,5 @@ Thumbs.db
 
 # supabase local dev folder
 .supabase/
+
+.vercel

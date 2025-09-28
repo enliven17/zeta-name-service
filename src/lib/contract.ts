@@ -32,19 +32,19 @@ const DOMAIN_PRICE = ethers.parseEther('0.001') // 0.001 ETH
 const TRANSFER_FEE = ethers.parseEther('0.0001')  // 0.0001 ETH
 
 export class OmnichainZetaNameServiceContract {
-  private contract: ethers.Contract
+  private contract!: ethers.Contract
   private signer: unknown
   private provider: unknown
-  private chainId: number
+  private chainId!: number
 
   constructor(provider: unknown, chainId?: number) {
     this.provider = provider
-    this.signer = provider.getSigner ? provider.getSigner() : provider
+    this.signer = (provider as any).getSigner ? (provider as any).getSigner() : provider
     
     // Get chain ID from provider if not provided
     if (!chainId) {
-      if (provider.getNetwork) {
-        provider.getNetwork().then((network: any) => {
+      if ((provider as any).getNetwork) {
+        (provider as any).getNetwork().then((network: any) => {
           this.chainId = Number(network.chainId)
           this.initializeContract()
         })
@@ -60,7 +60,7 @@ export class OmnichainZetaNameServiceContract {
 
   private initializeContract() {
     const contractAddress = getContractAddress(this.chainId)
-    this.contract = new ethers.Contract(contractAddress, OMNICHAIN_NAME_SERVICE_ABI, this.provider)
+    this.contract = new ethers.Contract(contractAddress, OMNICHAIN_NAME_SERVICE_ABI, this.provider as any)
     
     console.log('🔗 Omnichain contract initialized:', contractAddress);
     console.log('🌐 Chain ID:', this.chainId);
@@ -147,10 +147,10 @@ export class OmnichainZetaNameServiceContract {
 
       // Get signer
       const signer = await this.signer;
-      console.log('👤 Signer address:', await signer.getAddress());
+      console.log('👤 Signer address:', await (signer as any).getAddress());
 
       // Create contract instance with signer
-      const contractWithSigner = this.contract.connect(signer);
+      const contractWithSigner = this.contract.connect(signer as any);
 
       // Get chain-specific pricing
       const chainConfig = getChainConfig(this.chainId)
@@ -159,7 +159,7 @@ export class OmnichainZetaNameServiceContract {
       console.log('💰 Using chain-specific price:', ethers.formatEther(price), 'ETH');
       console.log('📝 Calling register with:', domainName.toLowerCase(), makeOmnichain);
       
-      const tx = await contractWithSigner.register(domainName.toLowerCase(), makeOmnichain, {
+      const tx = await (contractWithSigner as any).register(domainName.toLowerCase(), makeOmnichain, {
         value: price,
         gasLimit: 500000, // Higher gas limit for omnichain
       });
@@ -215,13 +215,13 @@ export class OmnichainZetaNameServiceContract {
       console.log('🔄 Transferring domain:', domainName, 'to:', toAddress);
       
       const signer = await this.signer;
-      const contractWithSigner = this.contract.connect(signer);
+      const contractWithSigner = this.contract.connect(signer as any);
       
       // Get chain-specific transfer fee
       const chainConfig = getChainConfig(this.chainId)
       const fee = chainConfig ? ethers.parseEther(chainConfig.transferFee) : TRANSFER_FEE
       
-      const tx = await contractWithSigner.transfer(domainName.toLowerCase(), toAddress, { 
+      const tx = await (contractWithSigner as any).transfer(domainName.toLowerCase(), toAddress, { 
         value: fee,
         gasLimit: 300000
       })
@@ -248,13 +248,13 @@ export class OmnichainZetaNameServiceContract {
       console.log('🌐 Cross-chain transfer:', domainName, 'to chain:', targetChainId);
       
       const signer = await this.signer;
-      const contractWithSigner = this.contract.connect(signer);
+      const contractWithSigner = this.contract.connect(signer as any);
       
       // Get chain-specific transfer fee
       const chainConfig = getChainConfig(this.chainId)
       const fee = chainConfig ? ethers.parseEther(chainConfig.transferFee) : TRANSFER_FEE
       
-      const tx = await contractWithSigner.crossChainTransfer(
+      const tx = await (contractWithSigner as any).crossChainTransfer(
         domainName.toLowerCase(), 
         toAddress, 
         targetChainId, 
@@ -287,7 +287,7 @@ export class OmnichainZetaNameServiceContract {
   async renewDomain(domainName: string): Promise<string> {
     try {
       const signer = await this.signer;
-      const tx = await this.contract.connect(signer).renew(domainName.toLowerCase(), {
+      const tx = await (this.contract.connect(signer as any) as any).renew(domainName.toLowerCase(), {
         value: DOMAIN_PRICE,
       })
 
@@ -337,7 +337,7 @@ export class OmnichainZetaNameServiceContract {
       console.log('✍️ Requesting signature from wallet...');
 
       // Sign the message
-      const signature = await signer.signMessage(ethers.getBytes(message));
+      const signature = await (signer as any).signMessage(ethers.getBytes(message));
 
       console.log('✅ Signature created:', signature);
       return signature;
@@ -357,8 +357,8 @@ export class OmnichainZetaNameServiceContract {
 export const getOmnichainContract = (provider: unknown, chainId?: number): OmnichainZetaNameServiceContract => {
   try {
     // For modern providers (MetaMask, etc.)
-    if (provider.request) {
-      const ethersProvider = new ethers.BrowserProvider(provider)
+    if ((provider as any).request) {
+      const ethersProvider = new ethers.BrowserProvider(provider as any)
       return new OmnichainZetaNameServiceContract(ethersProvider, chainId)
     }
     // Fallback for other providers

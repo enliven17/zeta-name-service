@@ -26,9 +26,9 @@ const getMarketplaceAddress = (chainId: number): string => {
 }
 
 export class OmnichainZetaMarketplaceContract {
-  private contract: ethers.Contract
+  private contract!: ethers.Contract
   private signer: any
-  private chainId: number
+  private chainId!: number
 
   constructor(provider: any, chainId?: number) {
     // Get chain ID from provider if not provided
@@ -66,7 +66,7 @@ export class OmnichainZetaMarketplaceContract {
     const signer = await this.signer
     const to = await this.contract.getAddress()
     const data = this.contract.interface.encodeFunctionData('buy', [name.toLowerCase()])
-    const tx = await signer.sendTransaction({ to, data, value: valueWei, gasLimit: 300000n })
+    const tx = await signer.sendTransaction({ to, data, value: valueWei, gasLimit: BigInt(300000) })
     const receipt = await tx.wait(1)
     if (receipt.status !== 1) throw new Error('Purchase failed on-chain')
     return tx.hash
@@ -85,7 +85,7 @@ export class OmnichainZetaMarketplaceContract {
     console.log(`Fee: ${ethers.formatEther(listingFee)} ETH`)
     console.log(`Allow cross-chain: ${allowCrossChain}`)
     
-    const tx = await signer.sendTransaction({ to, data, value: listingFee, gasLimit: 400000n })
+    const tx = await signer.sendTransaction({ to, data, value: listingFee, gasLimit: BigInt(400000) })
     const receipt = await tx.wait(1)
     if (receipt.status !== 1) throw new Error('Listing failed on-chain')
     return tx.hash
@@ -100,7 +100,7 @@ export class OmnichainZetaMarketplaceContract {
     console.log(`Target chain: ${targetChainId}`)
     console.log(`Offer price: ${ethers.formatEther(offerPriceWei)} ETH`)
     
-    const tx = await signer.sendTransaction({ to, data, value: offerPriceWei, gasLimit: 400000n })
+    const tx = await signer.sendTransaction({ to, data, value: offerPriceWei, gasLimit: BigInt(400000) })
     const receipt = await tx.wait(1)
     if (receipt.status !== 1) throw new Error('Cross-chain offer failed on-chain')
     return tx.hash
@@ -114,7 +114,7 @@ export class OmnichainZetaMarketplaceContract {
     console.log(`Accepting cross-chain offer for: ${name.toLowerCase()}`)
     console.log(`Buyer: ${buyer}`)
     
-    const tx = await signer.sendTransaction({ to, data, gasLimit: 500000n })
+    const tx = await signer.sendTransaction({ to, data, gasLimit: BigInt(500000) })
     const receipt = await tx.wait(1)
     if (receipt.status !== 1) throw new Error('Accept cross-chain offer failed on-chain')
     return tx.hash
@@ -147,7 +147,7 @@ export class OmnichainZetaMarketplaceContract {
     const signer = await this.signer
     const to = await this.contract.getAddress()
     const data = this.contract.interface.encodeFunctionData('unlist', [name.toLowerCase()])
-    const tx = await signer.sendTransaction({ to, data, gasLimit: 200000n })
+    const tx = await signer.sendTransaction({ to, data, gasLimit: BigInt(200000) })
     const receipt = await tx.wait(1)
     if (receipt.status !== 1) throw new Error('Unlist failed on-chain')
     return tx.hash

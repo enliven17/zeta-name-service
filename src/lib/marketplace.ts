@@ -77,6 +77,9 @@ export const marketplaceService = {
     minBid?: string,
     transactionHash?: string
   ): Promise<MarketplaceListing> {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
     const { data, error } = await supabase
       .from('marketplace_listings')
       .insert({
@@ -96,6 +99,9 @@ export const marketplaceService = {
   },
 
   async getActiveListings(): Promise<MarketplaceListing[]> {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
     const { data, error } = await supabase
       .from('marketplace_listings')
       .select(`
@@ -110,6 +116,9 @@ export const marketplaceService = {
   },
 
   async getListingsByDomain(domainId: string): Promise<MarketplaceListing[]> {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
     const { data, error } = await supabase
       .from('marketplace_listings')
       .select(`
@@ -124,6 +133,9 @@ export const marketplaceService = {
   },
 
   async getListingsBySeller(sellerAddress: string): Promise<MarketplaceListing[]> {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
     console.log('🔍 Fetching listings for seller:', sellerAddress.toLowerCase());
     
     const { data, error } = await supabase
@@ -151,6 +163,9 @@ export const marketplaceService = {
     status: 'active' | 'sold' | 'cancelled' | 'expired',
     transactionHash?: string
   ): Promise<MarketplaceListing> {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
     const updateData: any = { status };
     if (transactionHash) {
       updateData.transaction_hash = transactionHash;
@@ -171,6 +186,9 @@ export const marketplaceService = {
     listingId: string,
     newOwnerAddress: string
   ): Promise<MarketplaceListing> {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
     console.log(`Updating listing ${listingId} ownership to ${newOwnerAddress}`);
     
     const { data, error } = await supabase
@@ -201,6 +219,9 @@ export const marketplaceService = {
     expiresAt?: string,
     signature?: string
   ): Promise<MarketplaceOffer> {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
     const { data, error } = await supabase
       .from('marketplace_offers')
       .insert({
@@ -219,6 +240,9 @@ export const marketplaceService = {
   },
 
   async getOffersByListing(listingId: string): Promise<MarketplaceOffer[]> {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
     const { data, error } = await supabase
       .from('marketplace_offers')
       .select(`
@@ -234,6 +258,9 @@ export const marketplaceService = {
   },
 
   async getOffersByBidder(bidderAddress: string): Promise<MarketplaceOffer[]> {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
     const { data, error } = await supabase
       .from('marketplace_offers')
       .select(`
@@ -253,6 +280,9 @@ export const marketplaceService = {
     status: 'pending' | 'accepted' | 'rejected' | 'expired' | 'withdrawn',
     transactionHash?: string
   ): Promise<MarketplaceOffer> {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
     const updateData: any = { status };
     if (transactionHash) {
       updateData.transaction_hash = transactionHash;
@@ -282,6 +312,9 @@ export const marketplaceService = {
     blockNumber?: number,
     gasUsed?: string
   ): Promise<MarketplaceSale> {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
     const { data, error } = await supabase
       .from('marketplace_sales')
       .insert({
@@ -304,6 +337,9 @@ export const marketplaceService = {
   },
 
   async getSalesByDomain(domainId: string): Promise<MarketplaceSale[]> {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
     const { data, error } = await supabase
       .from('marketplace_sales')
       .select(`
@@ -318,6 +354,9 @@ export const marketplaceService = {
   },
 
   async getRecentSales(limit: number = 10): Promise<MarketplaceSale[]> {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
     const { data, error } = await supabase
       .from('marketplace_sales')
       .select(`
@@ -332,6 +371,9 @@ export const marketplaceService = {
   },
 
   async getSalesByUser(userAddress: string): Promise<MarketplaceSale[]> {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
     const { data, error } = await supabase
       .from('marketplace_sales')
       .select(`
@@ -347,6 +389,9 @@ export const marketplaceService = {
 
   // Statistics
   async getMarketplaceStats() {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
     const [activeListings, totalSales, recentSales] = await Promise.all([
       supabase
         .from('marketplace_listings')

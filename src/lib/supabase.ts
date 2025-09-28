@@ -13,12 +13,12 @@ console.log('🔍 Environment Debug:', {
 
 // Create a client with service role key for database operations (bypasses RLS)
 export const supabase = supabaseUrl && (supabaseServiceKey || supabaseAnonKey)
-  ? createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey, {
+  ? createClient(supabaseUrl as string, (supabaseServiceKey || supabaseAnonKey) as string, {
       db: { schema: 'public' },
       auth: { persistSession: false, autoRefreshToken: false },
       global: {
         headers: {
-          apikey: supabaseServiceKey || supabaseAnonKey,
+          apikey: (supabaseServiceKey || supabaseAnonKey) as string,
           Authorization: `Bearer ${supabaseServiceKey || supabaseAnonKey}`,
           Accept: 'application/json'
         }
@@ -232,7 +232,7 @@ export const domainService = {
         from_address: fromAddress.toLowerCase(),
         to_address: toAddress.toLowerCase(),
         signature,
-        transaction_hash: null,
+        transaction_hash: undefined,
         status: 'pending',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()

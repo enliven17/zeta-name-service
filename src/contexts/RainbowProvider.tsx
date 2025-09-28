@@ -17,7 +17,6 @@ const POLYGON_MUMBAI_RPC_URL = process.env.POLYGON_MUMBAI_RPC_URL || 'https://rp
 const { connectors } = getDefaultWallets({
   appName: 'Zeta Name Service - Omnichain Domains',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '226b43b703188d269fb70d02c107c34e',
-  chains: supportedChains as readonly [Chain, ...Chain[]],
 });
 
 // Create wagmi config with multiple chains
@@ -80,7 +79,6 @@ export function RainbowProvider({ children }: { children: React.ReactNode }) {
     <WagmiProvider config={config} reconnectOnMount={false}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider 
-          chains={supportedChains as readonly [Chain, ...Chain[]]}
           theme={customTheme}
           modalSize="wide"
           showRecentTransactions={true}

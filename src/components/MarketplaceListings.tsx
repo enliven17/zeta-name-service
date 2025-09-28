@@ -381,7 +381,7 @@ export function MarketplaceListings({ onBuyDomain, onMakeOffer }: MarketplaceLis
     if (loading) {
         return (
             <MarketplaceContainer>
-                <ListingsContainer>
+                <ListingsContainer currentIndex={0}>
                     <LoadingState>
                         <div>Loading marketplace listings...</div>
                     </LoadingState>
@@ -393,7 +393,7 @@ export function MarketplaceListings({ onBuyDomain, onMakeOffer }: MarketplaceLis
     if (listings.length === 0) {
         return (
             <MarketplaceContainer>
-                <ListingsContainer>
+                <ListingsContainer currentIndex={0}>
                     <EmptyState>
                         <FaTag size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
                         <h3 style={{ marginBottom: '8px', fontSize: '1.2rem' }}>No Listings Available</h3>
@@ -462,7 +462,7 @@ export function MarketplaceListings({ onBuyDomain, onMakeOffer }: MarketplaceLis
             </ResultsHeader>
 
             {filteredListings.length === 0 && searchTerm ? (
-                <ListingsContainer>
+                <ListingsContainer currentIndex={0}>
                     <EmptyState>
                         <FaSearch size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
                         <h3 style={{ marginBottom: '8px', fontSize: '1.2rem' }}>No Results Found</h3>
