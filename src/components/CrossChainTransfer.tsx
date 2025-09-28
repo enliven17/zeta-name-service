@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import styled from 'styled-components'
 import { FiArrowRight, FiX, FiInfo, FiClock, FiDollarSign } from 'react-icons/fi'
 import { ethers } from 'ethers'
-import { useAccount, useNetwork, useSwitchNetwork } from 'wagmi'
+import { useAccount, useChainId } from 'wagmi'
 import { supportedChains, getChainConfig, getCrossChainRoute, isCrossChainSupported } from '../config/chains'
 import { createOmnichainNameService } from '../lib/omnichainContract'
 
@@ -249,21 +249,29 @@ interface CrossChainTransferProps {
 
 export default function CrossChainTransfer({ isOpen, onClose, domainName, currentOwner }: CrossChainTransferProps) {
   const { address } = useAccount()
-  const { chain } = useNetwork()
-  const { switchNetwork } = useSwitchNetwork()
+  const chainId = useChainId()
 
   const [recipientAddress, setRecipientAddress] = useState('')
-  const [sourceChainId, setSourceChainId] = useState<number>(chain?.id || 421614)
+  const [sourceChainId, setSourceChainId] = useState<number>(chainId || 421614)
   const [targetChainId, setTargetChainId] = useState<number>(7001)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [domainInfo, setDomainInfo] = useState<any>(null)
+  const [isAddressLoading, setIsAddressLoading] = useState(true)
 
   useEffect(() => {
-    if (chain?.id) {
-      setSourceChainId(chain.id)
+    if (chainId) {
+      setSourceChainId(chainId)
     }
-  }, [chain?.id])
+  }, [chainId])
+
+  useEffect(() => {
+    if (address) {
+      setIsAddressLoading(false)
+    } else {
+      setIsAddressLoading(true)
+    }
+  }, [address])
 
   useEffect(() => {
     if (isOpen && domainName) {
@@ -285,7 +293,10 @@ export default function CrossChainTransfer({ isOpen, onClose, domainName, curren
   }
 
   const handleTransfer = async () => {
-    if (!address || !recipientAddress || !domainName) return
+    if (!address || !recipientAddress || !domainName) {
+      setError('Missing required information: address, recipient, or domain name')
+      return
+    }
 
     setIsLoading(true)
     setError('')
@@ -301,18 +312,20 @@ export default function CrossChainTransfer({ isOpen, onClose, domainName, curren
         throw new Error(`Cross-chain transfer not supported: ${sourceChainId} -> ${targetChainId}`)
       }
 
-      // Switch to source chain if needed
-      if (chain?.id !== sourceChainId && switchNetwork) {
-        await switchNetwork(sourceChainId)
-        return // Will retry after network switch
+      // Check if we're on the correct chain
+      if (chainId !== sourceChainId) {
+        throw new Error(`Please switch to chain ${sourceChainId} to perform this transfer`)
       }
 
       const provider = new ethers.BrowserProvider(window.ethereum)
       const signer = await provider.getSigner()
       const nameService = createOmnichainNameService(provider, sourceChainId, signer)
 
-      // Perform cross-chain transfer
-      const tx = await nameService.crossChainTransfer(domainName, recipientAddress, targetChainId)
+      // Perform cross-chain transfer with fee
+      const transferFee = ethers.parseEther("0.0001") // 0.0001 ETH transfer fee
+      const tx = await nameService.crossChainTransfer(domainName, recipientAddress, targetChainId, {
+        value: transferFee
+      })
       
       console.log('Cross-chain transfer initiated:', tx.hash)
       
@@ -448,13 +461,18 @@ export default function CrossChainTransfer({ isOpen, onClose, domainName, curren
           onClick={handleTransfer}
           disabled={
             isLoading || 
+            isAddressLoading ||
+            !address ||
             !recipientAddress || 
             !ethers.isAddress(recipientAddress) ||
             !route ||
             (domainInfo && !domainInfo.isOmnichain && sourceChainId !== targetChainId)
           }
         >
-          {isLoading ? 'Processing Transfer...' : 'Initiate Cross-Chain Transfer'}
+          {isLoading ? 'Processing Transfer...' : 
+           isAddressLoading ? 'Loading Address...' : 
+           !address ? 'Connect Wallet First' :
+           'Initiate Cross-Chain Transfer'}
         </Button>
 
         {sourceChainId === targetChainId && (

@@ -76,6 +76,7 @@ contract ZetaUniversalNameServiceFixed {
 
     uint256 public constant REGISTRATION_DURATION = 365 days;
     uint256 public constant BASE_REGISTRATION_PRICE = 0.001 ether;
+    uint256 public transferFee = 0.0001 ether;
 
     // Cross-chain message types
     uint8 constant CROSS_CHAIN_MINT = 1;
@@ -162,10 +163,11 @@ contract ZetaUniversalNameServiceFixed {
         string calldata name,
         address to,
         uint256 targetChainId
-    ) external {
+    ) external payable {
         uint256 currentChainId = block.chainid;
         require(to != address(0), "INVALID_RECIPIENT");
         require(targetChainId != currentChainId, "SAME_CHAIN");
+        require(msg.value >= transferFee, "INSUFFICIENT_FEE");
 
         string memory n = _toLower(name);
         DomainRecord memory rec = nameToRecord[n];
@@ -282,3 +284,4 @@ contract ZetaUniversalNameServiceFixed {
         to.transfer(address(this).balance);
     }
 }
+

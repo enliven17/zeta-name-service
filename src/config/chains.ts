@@ -238,9 +238,9 @@ export const chainConfigs = {
 // Contract addresses by chain
 export const contractAddresses = {
   [arbitrumSepolia.id]: {
-    nameService: process.env.NEXT_PUBLIC_ARB_NAME_SERVICE_ADDRESS || '0x813F8CfB8897F46bF0fD21914Cb76a21FD3a97Dd',
-    marketplace: process.env.NEXT_PUBLIC_ARB_MARKETPLACE_ADDRESS || '0x813F8CfB8897F46bF0fD21914Cb76a21FD3a97Dd',
-    omnichain: process.env.NEXT_PUBLIC_ARB_OMNICHAIN_ADDRESS || '0x813F8CfB8897F46bF0fD21914Cb76a21FD3a97Dd',
+    nameService: process.env.NEXT_PUBLIC_ARB_NAME_SERVICE_ADDRESS || '0xb5980f90ab6c35e6D14a228553066C1D2D8C0cd7',
+    marketplace: process.env.NEXT_PUBLIC_ARB_MARKETPLACE_ADDRESS || '0xb5980f90ab6c35e6D14a228553066C1D2D8C0cd7',
+    omnichain: process.env.NEXT_PUBLIC_ARB_OMNICHAIN_ADDRESS || '0xb5980f90ab6c35e6D14a228553066C1D2D8C0cd7',
   },
   [zetaChainTestnet.id]: {
     nameService: process.env.NEXT_PUBLIC_ZETACHAIN_NAME_SERVICE_ADDRESS || '0x6F40A56250fbB57F5a17C815BE66A36804590669',
@@ -248,9 +248,9 @@ export const contractAddresses = {
     omnichain: process.env.NEXT_PUBLIC_ZETACHAIN_NAME_SERVICE_ADDRESS || '0x6F40A56250fbB57F5a17C815BE66A36804590669',
   },
   [ethereumSepolia.id]: {
-    nameService: process.env.NEXT_PUBLIC_ETH_NAME_SERVICE_ADDRESS || '0x7Dd728c2AF6553801DDc2Be4906f09AcB33C2A74',
-    marketplace: process.env.NEXT_PUBLIC_ETH_MARKETPLACE_ADDRESS || '0x7Dd728c2AF6553801DDc2Be4906f09AcB33C2A74',
-    omnichain: process.env.NEXT_PUBLIC_ETH_OMNICHAIN_ADDRESS || '0x7Dd728c2AF6553801DDc2Be4906f09AcB33C2A74',
+    nameService: process.env.NEXT_PUBLIC_ETH_NAME_SERVICE_ADDRESS || '0x85c88B3F703df37E72cD68F292814cc5A571F73C',
+    marketplace: process.env.NEXT_PUBLIC_ETH_MARKETPLACE_ADDRESS || '0x85c88B3F703df37E72cD68F292814cc5A571F73C',
+    omnichain: process.env.NEXT_PUBLIC_ETH_OMNICHAIN_ADDRESS || '0x85c88B3F703df37E72cD68F292814cc5A571F73C',
   },
   [bscTestnet.id]: {
     nameService: process.env.NEXT_PUBLIC_BSC_NAME_SERVICE_ADDRESS || '',

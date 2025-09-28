@@ -210,3 +210,4 @@ testGatewayWithoutZRC20()
     console.error(error);
     process.exit(1);
   });
+
