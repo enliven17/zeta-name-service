@@ -57,12 +57,19 @@ async function testCrossChainTransfer() {
       console.log('❌ Domain not found on ZetaChain (expected if not transferred yet)');
     }
 
-    console.log('\n🎯 Cross-Chain Transfer Test Instructions:');
-    console.log('==========================================');
-    console.log('1. Register "testcrosschain.zeta" as omnichain on Ethereum Sepolia');
-    console.log('2. Use the UI to transfer it to ZetaChain');
-    console.log('3. Check if it appears on ZetaChain after 2-5 minutes');
-    console.log('4. If successful, the real cross-chain transfer is working!');
+    console.log('\n🎯 Real Cross-Chain Transfer Test:');
+    console.log('==================================');
+    console.log('✅ NEW contracts deployed with REAL ZetaChain integration!');
+    console.log('');
+    console.log('📋 Test Steps:');
+    console.log('1. Register a domain as OMNICHAIN on Ethereum Sepolia');
+    console.log('2. Use UI to transfer it to ZetaChain');
+    console.log('3. Domain should BURN on ETH and MINT on ZetaChain');
+    console.log('4. Check this script again to verify transfer');
+    console.log('');
+    console.log('🔗 New Contract Addresses:');
+    console.log('- ETH Sepolia:', ETH_CONTRACT);
+    console.log('- ZetaChain:', ZETA_CONTRACT);
 
   } catch (error) {
     console.error('💥 Test Error:', error);
