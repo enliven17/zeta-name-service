@@ -1,5 +1,7 @@
 # ZetaChain Universal Name Service
 
+ZETACHAIN VIBEATHON WINNER!
+
 A cross-chain domain name service powered by ZetaChain's Universal App pattern. Register, transfer, and manage .zeta domains across multiple blockchain networks with seamless cross-chain functionality, beautiful modern interface, and comprehensive marketplace features.
 
 ## 🌉 Cross-Chain Features
