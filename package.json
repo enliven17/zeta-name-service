@@ -38,9 +38,9 @@
     "babel-plugin-styled-components": "^2.1.4",
     "clsx": "^2.1.1",
     "ethers": "^6.9.0",
-    "next": "15.4.4",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
+    "next": "^15.5.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
     "react-icons": "^5.5.0",
     "simplex-noise": "^4.0.3",
     "styled-components": "^6.1.19",
@@ -58,7 +58,7 @@
     "@types/react-dom": "^19",
     "dotenv": "^16.3.1",
     "eslint": "^9",
-    "eslint-config-next": "15.4.4",
+    "eslint-config-next": "^15.5.0",
     "hardhat": "^2.19.0",
     "typescript": "^5"
   }
